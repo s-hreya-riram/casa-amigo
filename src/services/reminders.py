@@ -1,0 +1,1 @@
+""" Placeholder for reminders (letter of intent, lease, security deposit, rent) we may incorporate later"""

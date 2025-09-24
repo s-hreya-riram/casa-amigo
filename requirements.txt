@@ -1,1 +1,43 @@
-streamlit>=1.28.0,<=1.37.0
+# OpenAI dependencies
+openai>=1.40.0
+
+# Essential LangChain Dependencies
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-anthropic>=0.1.0
+langchain-community>=0.0.10
+llama-index
+
+# LangGraph Dependencies
+langgraph>=0.0.20
+
+# Core Supporting Libraries
+chromadb>=0.4.0
+tiktoken>=0.5.0
+python-dotenv>=1.0.0
+
+# Visualization (required by tutorial)
+matplotlib>=3.7.0
+
+# Jupyter Environment
+jupyterlab>=4.0.0
+notebook>=7.0.0
+ipykernel>=6.20.0
+
+# Basic data handling
+pandas>=2.0.0
+numpy>=1.24.0
+requests>=2.28.0
+
+# PDF Processing Libraries
+reportlab>=4.0.0
+pypdf>=3.0.0 
+
+# Streamlit
+streamlit>=1.36.0
+
+# Core LlamaIndex library
+llama-index>=0.10.30
+
+# LlamaIndex OpenAI integration
+llama-index-llms-openai>=0.1.8
