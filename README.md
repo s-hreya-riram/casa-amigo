@@ -61,12 +61,45 @@ The app is specifically tailored for Singapore's rental market, including HDB re
    api_key = "your_openai_api_key_here"
    ```
 
+   **Option C: Streamlit Cloud Deployment**
+   When deploying to Streamlit Cloud:
+   1. Go to your app dashboard on [share.streamlit.io](https://share.streamlit.io)
+   2. Click on your app, then navigate to "Settings" → "Secrets"
+   3. Add the following configuration in the secrets editor:
+   ```toml
+   [openai]
+   api_key = "your_openai_api_key_here"
+   ```
+   4. Click "Save" and wait for automatic redeployment
+   
+   ⚠️ **Important**: Make sure to include the `[openai]` section header - this is required for the app to find your API key in Streamlit Cloud.
+
 5. Run the application:
    ```bash
    streamlit run src/app.py
    ```
 
 The app will open in your browser.
+
+## Deployment
+
+### Streamlit Cloud
+
+1. **Fork or clone** this repository to your GitHub account
+2. **Go to** [share.streamlit.io](https://share.streamlit.io) and sign in
+3. **Click "New app"** and connect your GitHub repository
+4. **Set the main file path** to `src/app.py`
+5. **Configure secrets** as described in Option C above
+6. **Deploy** and your app will be live!
+
+### Other Platforms
+
+Casa Amigo can also be deployed on:
+- **Heroku**: Add your OpenAI API key as an environment variable in the dashboard
+- **Railway**: Configure `OPENAI_API_KEY` in the environment variables
+- **Render**: Set the API key in the environment variables section
+
+For all deployment platforms, ensure your `requirements.txt` includes all necessary dependencies.
 
 ## Project Structure
 
