@@ -1,4 +1,5 @@
 import os
+import base64
 import streamlit as st
 from dotenv import load_dotenv
 from typing import List, Dict, Any
@@ -41,6 +42,35 @@ class StreamlitApp:
                 st.caption(f"Environment: {self.config_manager.get_environment()}")
                 st.caption(f"Debug mode: {self.config_manager.get_debug_mode()}")
         st.title("🏠 Casa Amigo - Rental Assistant Chatbot")
+
+    def _add_logo(self):
+        """Add fixed logo at the top center of the page."""
+        logo_path = "assets/logo.png"
+        
+        # Encode logo as base64 for embedding
+        with open(logo_path, "rb") as f:
+            logo_base64 = base64.b64encode(f.read()).decode()
+
+        st.markdown(
+            f"""
+            <style>
+            .fixed-logo {{
+                position: fixed;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1000;
+                opacity: 0.8;
+                padding: 8px;
+                border-radius: 12px;
+            }}
+            </style>
+            <div class="fixed-logo">
+                <img src="data:image/png;base64,{logo_base64}" width="100">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     
     def _initialize_session_state(self):
         """Initialize chat message history in session state."""
