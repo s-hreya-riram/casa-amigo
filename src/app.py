@@ -14,13 +14,16 @@ class StreamlitApp:
         self.config_manager = ConfigManager()
         self.doc_manager = DocumentIndexManager()
         self.chatbot = ChatbotEngine(self.doc_manager.index, self.config_manager.api_key)
+        self.logo_base64 = None  # Cache for logo base64 string
         self._setup_page()
         self._initialize_session_state()
     
     def _setup_page(self):
         """Configure Streamlit page settings and title."""
         st.set_page_config(page_title="Casa Amigo Chatbot", page_icon="🏠")
-        
+
+        self._add_logo()
+       
         # Show configuration status in sidebar (for debugging)
         if self.config_manager.get_debug_mode():
             with st.sidebar:
@@ -41,32 +44,30 @@ class StreamlitApp:
                 
                 st.caption(f"Environment: {self.config_manager.get_environment()}")
                 st.caption(f"Debug mode: {self.config_manager.get_debug_mode()}")
-        st.title("🏠 Casa Amigo - Rental Assistant Chatbot")
+        st.title("Rental Assistant Chatbot")
 
     def _add_logo(self):
-        """Add fixed logo at the top center of the page."""
-        logo_path = "assets/logo.png"
+        """Add logo at the top center of the page."""
+        logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "logo.png")
         
-        # Encode logo as base64 for embedding
-        with open(logo_path, "rb") as f:
-            logo_base64 = base64.b64encode(f.read()).decode()
+        # Cache logo base64 string to avoid redundant file reads
+        if self.logo_base64 is None:
+            try:
+                with open(logo_path, "rb") as f:
+                    self.logo_base64 = base64.b64encode(f.read()).decode()
+            except (FileNotFoundError, IOError):
+                st.warning("⚠️ Logo file not found or unreadable. Please check the path to 'assets/logo.png'.")
+                return
 
         st.markdown(
             f"""
             <style>
-            .fixed-logo {{
-                position: fixed;
-                top: 10px;
-                left: 50%;
-                transform: translateX(-50%);
-                z-index: 1000;
-                opacity: 0.8;
-                padding: 8px;
-                border-radius: 12px;
+            .logo {{
+                text-align: center;
             }}
             </style>
-            <div class="fixed-logo">
-                <img src="data:image/png;base64,{logo_base64}" width="100">
+            <div class="logo">
+                <img src="data:image/png;base64,{self.logo_base64}" width="200">
             </div>
             """,
             unsafe_allow_html=True
