@@ -19,6 +19,27 @@ class StreamlitApp:
     def _setup_page(self):
         """Configure Streamlit page settings and title."""
         st.set_page_config(page_title="Casa Amigo Chatbot", page_icon="🏠")
+        
+        # Show configuration status in sidebar (for debugging)
+        if self.config_manager.get_debug_mode():
+            with st.sidebar:
+                st.subheader("🔧 Configuration Status")
+                
+                # Check which config method is being used
+                try:
+                    secrets_key = st.secrets["openai"]["api_key"]
+                    if secrets_key and secrets_key != "your_openai_api_key_here":
+                        st.success("✅ Using Streamlit secrets")
+                    else:
+                        st.warning("⚠️ Streamlit secrets not configured")
+                except (KeyError, FileNotFoundError):
+                    if os.getenv("OPENAI_API_KEY"):
+                        st.success("✅ Using environment variable")
+                    else:
+                        st.error("❌ No API key found")
+                
+                st.caption(f"Environment: {self.config_manager.get_environment()}")
+                st.caption(f"Debug mode: {self.config_manager.get_debug_mode()}")
         st.title("🏠 Casa Amigo - Rental Assistant Chatbot")
     
     def _initialize_session_state(self):

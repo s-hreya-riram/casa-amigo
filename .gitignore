@@ -5,3 +5,7 @@ __pycache__/
 .env
 pdf_index/
 USER_JOURNEY.md
+
+# Streamlit secrets (keep template, ignore actual secrets)
+.streamlit/secrets.toml
+!.streamlit/secrets.toml.template
