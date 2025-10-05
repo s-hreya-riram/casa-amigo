@@ -15,7 +15,11 @@ class ConfigManager:
         try:
             api_key = st.secrets["openai"]["api_key"]
             if api_key and api_key.strip() and api_key != "your_openai_api_key_here":
-                return api_key.strip()
+                api_key = api_key.strip()
+                # Set environment variable so LlamaIndex can find the API key
+                # LlamaIndex expects OPENAI_API_KEY in os.environ, not st.secrets
+                os.environ["OPENAI_API_KEY"] = api_key
+                return api_key
         except (KeyError, FileNotFoundError, AttributeError):
             pass
         
