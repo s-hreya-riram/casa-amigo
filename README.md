@@ -42,13 +42,27 @@ The app is specifically tailored for Singapore's rental market, including HDB re
    pip install -r requirements.txt
    ```
 
-4. Create a `.env` file in the root directory:
+4. Configure your OpenAI API key (choose one method):
+
+   **Option A: Environment Variable (for local development)**
+   Create a `.env` file in the root directory:
    ```
    OPENAI_API_KEY=your_openai_api_key_here
    ```
 
-5. Run the application:
+   **Option B: Streamlit Secrets (recommended for deployment)**
+   Copy the template and configure:
+   ```bash
+   cp .streamlit/secrets.toml.template .streamlit/secrets.toml
    ```
+   Then edit `.streamlit/secrets.toml` and add your API key:
+   ```toml
+   [openai]
+   api_key = "your_openai_api_key_here"
+   ```
+
+5. Run the application:
+   ```bash
    streamlit run src/app.py
    ```
 
