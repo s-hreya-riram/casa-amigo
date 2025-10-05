@@ -14,19 +14,20 @@ class ConfigManager:
         # Try Streamlit secrets first (for deployed apps)
         try:
             api_key = st.secrets["openai"]["api_key"]
-            if api_key and api_key != "your_openai_api_key_here":
-                return api_key
-        except (KeyError, FileNotFoundError):
+            if api_key and api_key.strip() and api_key != "your_openai_api_key_here":
+                return api_key.strip()
+        except (KeyError, FileNotFoundError, AttributeError):
             pass
         
         # Fall back to environment variable (for local development)
         api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            st.error("🔑 OpenAI API key not found. Please configure it in either:")
-            st.error("• .env file (OPENAI_API_KEY=your_key)")
-            st.error("• .streamlit/secrets.toml ([openai] api_key='your_key')")
-            st.stop()
-        return api_key
+        if api_key and api_key.strip():
+            return api_key.strip()
+        
+        st.error("🔑 OpenAI API key not found. Please configure it in either:")
+        st.error("• .env file (OPENAI_API_KEY=your_key)")
+        st.error("• .streamlit/secrets.toml ([openai] api_key='your_key')")
+        st.stop()
     
     def get_debug_mode(self) -> bool:
         """Get debug mode setting."""
