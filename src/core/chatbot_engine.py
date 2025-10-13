@@ -1,3 +1,4 @@
+
 """Chatbot engine for the Casa Amigo application."""
 
 from llama_index.core import VectorStoreIndex
