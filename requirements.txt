@@ -6,7 +6,6 @@ langchain>=0.1.0
 langchain-openai>=0.0.5
 langchain-anthropic>=0.1.0
 langchain-community>=0.0.10
-llama-index
 
 # LangGraph Dependencies
 langgraph>=0.0.20
@@ -37,7 +36,10 @@ pypdf>=3.0.0
 streamlit>=1.36.0
 
 # Core LlamaIndex library
-llama-index>=0.10.30
+llama-index>=0.11.0
 
 # LlamaIndex OpenAI integration
 llama-index-llms-openai>=0.1.8
+
+# Supabase client
+supabase>=1.0.0
