@@ -3,6 +3,7 @@ import base64
 import streamlit as st
 from dotenv import load_dotenv
 from typing import List, Dict, Any
+from utils.tool_registry import consume_debug_log
 
 from config import ConfigManager
 from core import ChatbotEngine, DocumentIndexManager, CasaAmigoAgent
@@ -49,6 +50,7 @@ class StreamlitApp:
                 
                 st.caption(f"Environment: {self.config_manager.get_environment()}")
                 st.caption(f"Debug mode: {self.config_manager.get_debug_mode()}")
+           
         st.title("Rental Assistant Chatbot")
 
     def _add_logo(self):
@@ -100,6 +102,41 @@ class StreamlitApp:
             # Get bot response
             #response = self.chatbot.get_response(user_query)
             response = self.chatbot.chat(user_query)
+
+
+            #### -------- for debugging the models response ---------
+            with st.sidebar.expander("🔎 Debug (last turn)", expanded=True):
+                # A) Tool registry logs (retrieved_k + top-3)
+                logs = consume_debug_log()  # this returns & CLEARS the buffer
+                if not logs:
+                    st.caption("No tool logs yet.")
+                else:
+                    for row in logs:
+                        if row["event"] == "tool_called":
+                            st.write(f"**Tool:** `{row['tool']}`")
+                            st.code(row["args"])
+                        elif row["event"] == "retrieval":
+                            st.write(f"**retrieved_k:** {row['retrieved_k']}")
+                            top = row.get("top", [])
+                            if top:
+                                st.write("**Top-3:**")
+                                for t in top:
+                                    st.write(f"- #{t['rank']} — score={t['score']} — {t['label']}")
+                        elif row["event"] == "tool_error":
+                            st.error(f"{row['tool']} error: {row['error']}")
+
+                # B) Agent tool calls (name + args)
+                calls = self.chatbot.get_tool_calls() if hasattr(self.chatbot, "get_tool_calls") else []
+                if calls:
+                    st.markdown("---")
+                    st.write("**Agent tool calls**")
+                    for c in calls:
+                        st.write(f"- #{c['i']} **{c['name']}**")
+                        st.code(c["args"])
+                else:
+                    st.caption("No agent tool calls recorded.")
+
+
         
             # Add assistant message
             st.session_state["messages"].append({"role": "assistant", "content": response})
