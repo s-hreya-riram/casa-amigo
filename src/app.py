@@ -7,6 +7,7 @@ from utils.tool_registry import consume_debug_log
 
 from config import ConfigManager
 from core import ChatbotEngine, DocumentIndexManager, CasaAmigoAgent
+from supabase import create_client
 
 class StreamlitApp:
     """Manages the Streamlit UI and user interactions."""
@@ -18,7 +19,8 @@ class StreamlitApp:
         self.logo_base64 = None  # Cache for logo base64 string
         self._setup_page()
         self._initialize_session_state()
-    
+        self.supabase_client = self._init_supabase_client()
+
     def _setup_page(self):
         """Configure Streamlit page settings and title."""
         st.set_page_config(page_title="Casa Amigo Chatbot", page_icon="🏠")
@@ -142,6 +144,17 @@ class StreamlitApp:
             st.session_state["messages"].append({"role": "assistant", "content": response})
             st.chat_message("assistant").write(response)
     
+    def _init_supabase_client(self):
+       """Initialize Supabase client from secrets."""
+       try:
+           url = st.secrets["supabase"]["url"]
+           key = st.secrets["supabase"]["anon_key"]
+           return create_client(url, key)
+       except KeyError:
+           st.error("Supabase credentials not found in Streamlit secrets.")
+           # stop execution if Supabase is not configured, re-evaluate fallback later
+           st.stop() 
+
     def run(self):
         """Run the main application."""
         self._display_chat_history()
