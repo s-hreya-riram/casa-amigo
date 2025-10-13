@@ -24,6 +24,7 @@ from llama_index.llms.openai import OpenAI
 from llama_index.core.agent.workflow import AgentWorkflow
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core import VectorStoreIndex
+from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
 
 from utils.prompts import SYSTEM_ROUTING_PROMPT
 from utils.tool_registry import build_tools
@@ -40,9 +41,15 @@ class AgentConfig:
 class CasaAmigoAgent:
     def __init__(self, index: VectorStoreIndex, api_key: str, config: Optional[AgentConfig] = None):
         self.config = config or AgentConfig()
-        self.llm = OpenAI(model=self.config.model, api_key=api_key, temperature=self.config.temperature)
+
+        # for debugging tool calls / thought process
+        self.debug = LlamaDebugHandler(print_trace_on_end=True)  # prints a full trace when a run ends
+        self.cb_manager = CallbackManager([self.debug])
+
+        self.llm = OpenAI(model=self.config.model, api_key=api_key, temperature=self.config.temperature, callback_manager=self.cb_manager)
 
         tools = build_tools(index, similarity_top_k=self.config.similarity_top_k)
+        
         self.workflow = AgentWorkflow.from_tools_or_functions(
             tools,
             llm=self.llm,
@@ -52,8 +59,19 @@ class CasaAmigoAgent:
 
         self.memory = ChatMemoryBuffer.from_defaults(token_limit=self.config.memory_token_limit, llm=self.llm)
 
-    # Public chat API
     def chat(self, message: str) -> str:
         out = run_sync(self.workflow, message, self.memory)
+
+
+        # debugging to print the specific tool call & inputs
+        tool_calls = getattr(out, "tool_calls", None) or getattr(out, "tool_execs", None)
+        if tool_calls:
+            for i, tc in enumerate(tool_calls):
+                name = getattr(tc, "tool_name", None) or getattr(tc, "name", None)
+                args = getattr(tc, "input", None) or getattr(tc, "tool_input", None)
+                print(f"[agent] tool_call[{i}] name={name} args={args}")  # keep this
+        else:
+            print("[agent] no tool calls recorded")
+
         return extract_text(out)
 
