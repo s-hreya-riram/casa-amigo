@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from typing import List, Dict, Any
 
 from config import ConfigManager
-from core import ChatbotEngine, DocumentIndexManager
+from core import ChatbotEngine, DocumentIndexManager, CasaAmigoAgent
 
 class StreamlitApp:
     """Manages the Streamlit UI and user interactions."""
@@ -13,7 +13,7 @@ class StreamlitApp:
     def __init__(self):
         self.config_manager = ConfigManager()
         self.doc_manager = DocumentIndexManager()
-        self.chatbot = ChatbotEngine(self.doc_manager.index, self.config_manager.api_key)
+        self.chatbot = CasaAmigoAgent(self.doc_manager.index, self.config_manager.api_key)#ChatbotEngine(self.doc_manager.index, self.config_manager.api_key)
         self.logo_base64 = None  # Cache for logo base64 string
         self._setup_page()
         self._initialize_session_state()
@@ -93,7 +93,8 @@ class StreamlitApp:
             st.chat_message("user").write(user_query)
             
             # Get bot response
-            response = self.chatbot.get_response(user_query)
+            #response = self.chatbot.get_response(user_query)
+            response = self.chatbot.chat(user_query)
             
             # Add assistant message
             st.session_state["messages"].append({"role": "assistant", "content": response})
