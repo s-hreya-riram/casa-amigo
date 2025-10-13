@@ -28,6 +28,11 @@ class StreamlitApp:
         if self.config_manager.get_debug_mode():
             with st.sidebar:
                 st.subheader("🔧 Configuration Status")
+
+                # to rebuild cache if we've made a change to our tenancy agreements that we want to test
+                if st.button("🔁 Rebuild index (parse clauses)"):
+                    self.doc_manager.rebuild()
+                    st.success("Index rebuilt with clause metadata.")
                 
                 # Check which config method is being used
                 try:
@@ -95,7 +100,7 @@ class StreamlitApp:
             # Get bot response
             #response = self.chatbot.get_response(user_query)
             response = self.chatbot.chat(user_query)
-            
+        
             # Add assistant message
             st.session_state["messages"].append({"role": "assistant", "content": response})
             st.chat_message("assistant").write(response)

@@ -1,4 +1,7 @@
 import asyncio
+import re
+from textwrap import shorten
+from llama_index.core.tools import FunctionTool, ToolMetadata
 
 async def _run_workflow(workflow, message, memory):
     return await workflow.run(user_msg=message, memory=memory)
@@ -52,3 +55,48 @@ def extract_text(agent_output) -> str:
                     return b0.text
             return str(c)
     return str(out)
+
+def _excerpt(txt: str, width: int = 320) -> str:
+    txt = re.sub(r"\s+", " ", txt).strip()
+    return shorten(txt, width=width, placeholder="…")
+
+def _format_with_citations(resp, min_items: int = 1) -> str:
+    """Make: Answer + Relevant excerpts with (Clause N: Title) labels."""
+    # 1) main answer text
+    if hasattr(resp, "response") and isinstance(resp.response, str):
+        answer_text = resp.response
+    else:
+        answer_text = str(resp)
+
+    lines = ["**Answer**", answer_text, "", "**Relevant excerpts**"]
+    seen = set()
+    count = 0
+
+    for sn in getattr(resp, "source_nodes", []) or []:
+        node = sn.node
+        meta = getattr(node, "metadata", {}) or {}
+        # Prefer clause metadata if you added it during ingest
+        clause_num = meta.get("clause_num")
+        clause_title = meta.get("clause_title")
+        page = meta.get("page_label") or meta.get("page")  # fallback
+
+        if clause_num or clause_title:
+            label = f"Clause {clause_num}: {clause_title}" if clause_num else f"{clause_title}"
+        elif page is not None:
+            label = f"Page {page}"
+        else:
+            label = "Clause (unspecified)"
+
+        key = (label, node.text[:80])
+        if key in seen:
+            continue
+        seen.add(key)
+
+        quote = _excerpt(node.text)
+        lines.append(f"• *{label}* — “{quote}”")
+        count += 1
+
+    if count < min_items:
+        lines.append("• _No clearly relevant clauses were found above the confidence threshold._")
+
+    return "\n".join(lines)
