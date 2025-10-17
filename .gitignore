@@ -4,7 +4,9 @@ venv/
 __pycache__/
 .env
 pdf_index/
-USER_JOURNEY.md
+supabase/
+entities/
+.vscode/
 
 # Streamlit secrets (keep template, ignore actual secrets)
 .streamlit/secrets.toml
