@@ -6,20 +6,28 @@ from typing import List, Dict, Any
 from utils.tool_registry import consume_debug_log
 
 from config import ConfigManager
-from core import ChatbotEngine, DocumentIndexManager, CasaAmigoAgent
-from supabase import create_client
+from core import ChatbotEngine, DocumentIndexManager, CasaAmigoAgent, SupabaseClient, SupabaseCredentialsError, SupabaseConnectionError
 
 class StreamlitApp:
     """Manages the Streamlit UI and user interactions."""
     
     def __init__(self):
+        # Initialize Supabase client
+        try:
+            self.supabase = SupabaseClient().client
+        except SupabaseCredentialsError as e:
+            st.error(str(e))
+            st.stop()  # Stop the app if client can't be created
+        except SupabaseConnectionError as e:
+            st.error(f"Unable to connect to Supabase: {e}")
+            st.stop()
+
         self.config_manager = ConfigManager()
         self.doc_manager = DocumentIndexManager()
         self.chatbot = CasaAmigoAgent(self.doc_manager.index, self.config_manager.api_key)#ChatbotEngine(self.doc_manager.index, self.config_manager.api_key)
         self.logo_base64 = None  # Cache for logo base64 string
         self._setup_page()
         self._initialize_session_state()
-        self.supabase_client = self._init_supabase_client()
 
     def _setup_page(self):
         """Configure Streamlit page settings and title."""
@@ -143,17 +151,6 @@ class StreamlitApp:
             # Add assistant message
             st.session_state["messages"].append({"role": "assistant", "content": response})
             st.chat_message("assistant").write(response)
-    
-    def _init_supabase_client(self):
-       """Initialize Supabase client from secrets."""
-       try:
-           url = st.secrets["supabase"]["url"]
-           key = st.secrets["supabase"]["anon_key"]
-           return create_client(url, key)
-       except KeyError:
-           st.error("Supabase credentials not found in Streamlit secrets.")
-           # stop execution if Supabase is not configured, re-evaluate fallback later
-           st.stop() 
 
     def run(self):
         """Run the main application."""
