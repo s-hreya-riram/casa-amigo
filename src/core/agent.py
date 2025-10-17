@@ -24,9 +24,9 @@ from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core import VectorStoreIndex, Settings
 from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
 
-from utils.prompts import SYSTEM_ROUTING_PROMPT
-from utils.tool_registry import build_tools
-from utils.utils import run_sync, extract_text
+from ..utils.prompts import SYSTEM_ROUTING_PROMPT
+from ..utils.tool_registry import build_tools
+from ..utils.utils import run_sync, extract_text
 
 
 @dataclass

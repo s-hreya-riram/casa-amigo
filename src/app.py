@@ -6,22 +6,12 @@ from typing import List, Dict, Any
 from utils.tool_registry import consume_debug_log
 
 from config import ConfigManager
-from core import ChatbotEngine, DocumentIndexManager, CasaAmigoAgent, SupabaseClient, SupabaseCredentialsError, SupabaseConnectionError
+from core import ChatbotEngine, DocumentIndexManager, CasaAmigoAgent
 
 class StreamlitApp:
     """Manages the Streamlit UI and user interactions."""
     
     def __init__(self):
-        # Initialize Supabase client
-        try:
-            self.supabase = SupabaseClient().client
-        except SupabaseCredentialsError as e:
-            st.error(str(e))
-            st.stop()  # Stop the app if client can't be created
-        except SupabaseConnectionError as e:
-            st.error(f"Unable to connect to Supabase: {e}")
-            st.stop()
-
         self.config_manager = ConfigManager()
         self.doc_manager = DocumentIndexManager()
         self.chatbot = CasaAmigoAgent(self.doc_manager.index, self.config_manager.api_key)#ChatbotEngine(self.doc_manager.index, self.config_manager.api_key)

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from llama_index.core import VectorStoreIndex
 from llama_index.core.tools import FunctionTool
-from utils.utils import format_with_citations, detect_clause_label_from_text
+from .utils import format_with_citations, detect_clause_label_from_text
 
 # ---- in-memory debug list for UI --------------------------
 _DEBUG_LOG: list[dict] = []

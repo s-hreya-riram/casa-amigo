@@ -1,7 +1,21 @@
 """Services and external integrations module."""
 
-# Import classes from service files when they're implemented
-# from .rag_engine import YourRAGClass
-# from .reminders import YourReminderClass
+from .auth import AuthService
+from .user import UserService
+from .tenant_profile import TenantProfileService
+from .property import PropertyService
+from .reminders import ReminderService
+from .conversation import ConversationService
+from .tenancy import TenancyService
+from . import schema
 
-__all__ = []  # Add your actual class names here when implemented
+__all__ = [
+    "AuthService",
+    "UserService",
+    "TenantProfileService",
+    "PropertyService",
+    "ReminderService",
+    "ConversationService",
+    "TenancyService",
+    "schema"
+]
