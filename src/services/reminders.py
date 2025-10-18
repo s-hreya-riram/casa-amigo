@@ -1,6 +1,6 @@
-from ..services.base import BaseService
-from ..services.schema import RemindersInsert, RemindersUpdate
-from ..core.exceptions import NotFoundError
+from services.base import BaseService
+from services.schema import RemindersInsert, RemindersUpdate
+from core.exceptions import NotFoundError
 from uuid import UUID
 from datetime import datetime
 from typing import List, Dict
@@ -19,8 +19,12 @@ class ReminderService(BaseService):
     
     def create_reminder(self, reminder: RemindersInsert) -> Dict:
         """Create new reminder"""
+        reminder_data = reminder.model_dump()
+        reminder_data.pop("reminder_id", None)  # Let DB generate UUID
+        reminder_data.pop("created_at", None)  # Let DB generate created_at
+        reminder_data.pop("updated_at", None)  # Let DB generate updated_at
         data = self._execute_query(
-            lambda: self.client.table("reminders").insert(reminder.model_dump()),
+            lambda: self.client.table("reminders").insert(reminder_data),
             "Create reminder"
         )
         return data[0] if data else {}

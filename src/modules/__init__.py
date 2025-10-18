@@ -1,1 +1,1 @@
-__all__ = ['']
+""" Placeholder for module initialization. """

@@ -1,5 +1,5 @@
 from .schema import UsersInsert
-from ..core.exceptions import AuthenticationError, ValidationError
+from core.exceptions import AuthenticationError, ValidationError
 from typing import Dict
 import hashlib
 import secrets
@@ -27,9 +27,9 @@ class AuthService:
             return new_hash.hex() == hashed
         except (ValueError, AttributeError):
             return False
-    
-    def signup(self, email: str, name: str, password: str) -> Dict:
-        """Register new user. Raises ValidationError if email exists."""
+
+    def signup(self, email: str, name: str, password: str, user_type: str = None) -> Dict:
+        """Register new user"""
         if len(password) < 8:
             raise ValidationError("Password must be at least 8 characters")
         if not email or "@" not in email:
@@ -38,7 +38,8 @@ class AuthService:
         user = UsersInsert(
             email_id=email,
             name=name,
-            password_hash=self.hash_password(password)
+            password_hash=self.hash_password(password),
+            user_type=user_type
         )
         return self.user_service.create_user(user)
     

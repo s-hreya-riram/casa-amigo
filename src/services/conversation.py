@@ -1,5 +1,5 @@
-from ..services.base import BaseService
-from ..services.schema import MessagesInsert
+from services.base import BaseService
+from services.schema import MessagesInsert, ConversationsInsert
 from uuid import UUID
 from typing import List, Dict
 
@@ -18,6 +18,8 @@ class ConversationService(BaseService):
     def add_message(self, conversation_id: UUID, message: MessagesInsert) -> Dict:
         """Add message to conversation"""
         msg_data = message.model_dump()
+        msg_data.pop("message_id", None)  # Let DB generate UUID
+        msg_data.pop("created_at", None)  # Let DB generate created_at
         msg_data["conversation_id"] = str(conversation_id)
         data = self._execute_query(
             lambda: self.client.table("messages").insert(msg_data),
@@ -35,3 +37,17 @@ class ConversationService(BaseService):
                 .limit(limit),
             f"Get messages from conversation {conversation_id}"
         )
+    
+    # NOTE: This is for testing purposes only
+    def create_conversation(self, conversation: ConversationsInsert) -> Dict:
+        """Create a new conversation"""
+        conv_data = conversation.model_dump()
+        conv_data.pop("conversation_id", None)  # Let DB generate UUID
+        conv_data.pop("created_at", None)  # Let DB generate created_at
+        conv_data.pop("updated_at", None)  # Let DB generate updated_at
+
+        data = self._execute_query(
+            lambda: self.client.table("conversations").insert(conv_data),
+            "Create conversation"
+        )
+        return data[0] if data else {}

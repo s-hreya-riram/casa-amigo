@@ -1,5 +1,5 @@
-from ..services.base import BaseService
-from ..services.schema import TenancyAgreementsInsert
+from services.base import BaseService
+from services.schema import TenancyAgreementsInsert
 from uuid import UUID
 from typing import Dict
 

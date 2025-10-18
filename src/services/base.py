@@ -1,5 +1,5 @@
-from ..core.exceptions import OperationError, NotFoundError
-from ..modules.supabase_instance import supabase_client
+from core.exceptions import OperationError, NotFoundError
+from modules.supabase_instance import supabase_client
 from typing import List, Dict, Any, Optional
         
 class BaseService:
@@ -11,7 +11,8 @@ class BaseService:
     def _execute_query(self, query_fn, error_context: str = "Database operation"):
         """Execute query with consistent error handling"""
         try:
-            response = query_fn()
+            query = query_fn()
+            response = query.execute()  # Execute the query
             return response.data
         except Exception as e:
             raise OperationError(f"{error_context} failed: {str(e)}")

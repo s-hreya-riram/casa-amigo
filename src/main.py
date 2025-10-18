@@ -4,18 +4,18 @@ from uuid import UUID
 from typing import Optional
 
 # Import services
-from .services import AuthService, UserService, TenantProfileService, ReminderService, ConversationService, PropertyService, TenancyService
-from .services.schema import (
+from services import AuthService, UserService, TenantProfileService, ReminderService, ConversationService, PropertyService, TenancyService
+from services.schema import (
     UsersInsert, UsersUpdate,
     TenantProfilesInsert, TenantProfilesUpdate,
     RemindersInsert,
-    MessagesInsert,
+    MessagesInsert, ConversationsInsert,
     PropertyPreferencesInsert, PropertyPreferencesUpdate,
     TenancyAgreementsInsert
 )
 
 # Import exceptions
-from .core.exceptions import (
+from core.exceptions import (
     NotFoundError, ValidationError, AuthenticationError, OperationError
 )
 
@@ -54,16 +54,14 @@ def _handle_service_error(e: Exception, status_code: int = 400):
         raise HTTPException(status_code=status_code, detail=str(e))
 
 # ==================== AUTH ROUTES ====================
-
 @app.post("/auth/signup", tags=["Auth"])
-async def signup(email: str, name: str, password: str):
+async def signup(email: str, name: str, password: str, user_type: str = "tenant"):
     """Create a new user account"""
     try:
-        user = auth_service.signup(email, name, password)
-        return {"user_id": user.get("user_id"), "email": user.get("email_id"), "name": user.get("name")}
+        user = auth_service.signup(email, name, password, user_type)
+        return {"user_id": user.get("user_id"), "email": user.get("email_id"), "name": user.get("name"), "user_type": user.get("user_type")}
     except Exception as e:
         _handle_service_error(e)
-
 
 @app.post("/auth/login", tags=["Auth"])
 async def login(email: str, password: str):
@@ -207,6 +205,14 @@ async def get_conversation_messages(conversation_id: UUID, limit: int = 50):
     except Exception as e:
         _handle_service_error(e)
 
+@app.post("/conversations", tags=["Conversations"])
+async def create_conversation(conversation: ConversationsInsert):
+    """Create a new conversation"""
+    try:
+        created_conversation = conversation_service.create_conversation(conversation)
+        return created_conversation
+    except Exception as e:
+        _handle_service_error(e)
 
 # ==================== PROPERTY PREFERENCES ROUTES ====================
 
@@ -258,6 +264,15 @@ async def search_properties_by_preferences(user_id: UUID):
     try:
         matching_properties = property_service.search_by_preferences(user_id)
         return {"properties": matching_properties, "count": len(matching_properties)}
+    except Exception as e:
+        _handle_service_error(e)
+
+@app.post("/properties", tags=["Properties"])
+async def create_property(property_data: dict):
+    """Create a new property"""
+    try:
+        property_obj = property_service.create_property(property_data)
+        return property_obj
     except Exception as e:
         _handle_service_error(e)
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import UUID4, BaseModel, Field, Json
 
@@ -22,7 +22,13 @@ from pydantic import UUID4, BaseModel, Field, Json
 class CustomModel(BaseModel):
     """Base model class with common features."""
 
-    pass
+    # DO NOT REMOVE THIS METHOD!
+    # The following is to assist with UUID serialization in JSON mode
+    def model_dump(self, **kwargs):
+        """Override model_dump to use JSON mode by default for UUID serialization"""
+        if 'mode' not in kwargs:
+            kwargs['mode'] = 'json'
+        return super().model_dump(**kwargs)
 
 
 class CustomModelInsert(CustomModel):
@@ -122,7 +128,7 @@ class PropertyPreferencesBaseSchema(CustomModel):
     image_embeddings: Any | None = Field(default=None)
     max_bedrooms: int | None = Field(default=None)
     max_budget: float | None = Field(default=None)
-    max_distance_from_mrt: float | None = Field(default=None)
+    max_distance_from_mrt_in_km: float | None = Field(default=None)
     max_sqft: float | None = Field(default=None)
     min_bathrooms: float | None = Field(default=None)
     min_bedrooms: int | None = Field(default=None)
@@ -382,7 +388,7 @@ class PropertyPreferencesInsert(CustomModelInsert):
     # image_embeddings: nullable
     # max_bedrooms: nullable
     # max_budget: nullable
-    # max_distance_from_mrt: nullable
+    # max_distance_from_mrt_in_km: nullable
     # max_sqft: nullable
     # min_bathrooms: nullable
     # min_bedrooms: nullable
@@ -400,7 +406,7 @@ class PropertyPreferencesInsert(CustomModelInsert):
     image_embeddings: Any | None = Field(default=None)
     max_bedrooms: int | None = Field(default=None)
     max_budget: float | None = Field(default=None)
-    max_distance_from_mrt: float | None = Field(default=None)
+    max_distance_from_mrt_in_km: float | None = Field(default=None)
     max_sqft: float | None = Field(default=None)
     min_bathrooms: float | None = Field(default=None)
     min_bedrooms: int | None = Field(default=None)
@@ -589,7 +595,7 @@ class UsersInsert(CustomModelInsert):
     password_reset_expires: datetime.datetime | None = Field(default=None)
     password_reset_token: str | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
-    user_type: str | None = Field(default=None)
+    user_type: Literal["tenant", "property_agent"] | None = Field(default="tenant")
 
 
 # UPDATE CLASSES
@@ -715,7 +721,7 @@ class PropertyPreferencesUpdate(CustomModelUpdate):
     # image_embeddings: nullable
     # max_bedrooms: nullable
     # max_budget: nullable
-    # max_distance_from_mrt: nullable
+    # max_distance_from_mrt_in_km: nullable
     # max_sqft: nullable
     # min_bathrooms: nullable
     # min_bedrooms: nullable
@@ -733,7 +739,7 @@ class PropertyPreferencesUpdate(CustomModelUpdate):
     image_embeddings: Any | None = Field(default=None)
     max_bedrooms: int | None = Field(default=None)
     max_budget: float | None = Field(default=None)
-    max_distance_from_mrt: float | None = Field(default=None)
+    max_distance_from_mrt_in_km: float | None = Field(default=None)
     max_sqft: float | None = Field(default=None)
     min_bathrooms: float | None = Field(default=None)
     min_bedrooms: int | None = Field(default=None)
@@ -910,7 +916,7 @@ class UsersUpdate(CustomModelUpdate):
     password_reset_expires: datetime.datetime | None = Field(default=None)
     password_reset_token: str | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
-    user_type: str | None = Field(default=None)
+    user_type: Literal["tenant", "property_agent"] | None = Field(default="tenant")
 
 
 # OPERATIONAL CLASSES
