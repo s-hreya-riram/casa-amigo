@@ -1,0 +1,1 @@
+"""Casa Amigo backend application."""
