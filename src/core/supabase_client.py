@@ -1,7 +1,8 @@
-import streamlit as st
 from supabase import create_client, Client
 from requests.exceptions import RequestException
 from typing import Optional
+from dotenv import load_dotenv
+import os
 
 # ----------------- Custom Exceptions -----------------
 class SupabaseError(Exception):
@@ -21,13 +22,14 @@ class SupabaseClient:
 
     def _init_client(self):
         """Initialize Supabase client with robust, specific error handling."""
-        # --- Validate secrets ---
+        # Get credentials from .env
         try:
-            url = st.secrets["supabase"]["url"]
-            key = st.secrets["supabase"]["anon_key"]
+            load_dotenv()
+            url = os.getenv("SUPABASE_URL")
+            key = os.getenv("SUPABASE_ANON_KEY")
         except KeyError:
             raise SupabaseCredentialsError(
-                "Supabase credentials not found in Streamlit secrets."
+                "Supabase credentials not found in environment variables."
             )
 
         if not url or not key:
