@@ -13,6 +13,9 @@ class StreamlitApp:
     RED: str = "#D84339"
     BLUE: str = "#2C4B8E"
     NAVY: str = "#1F2A60"
+    idle_icon = os.path.join(os.path.dirname(__file__), "..", "assets", "blink_robot_avatar.gif")
+    thinking_icon = os.path.join(os.path.dirname(__file__), "..", "assets", "load_robot_avatar.gif")
+    user_icon = os.path.join(os.path.dirname(__file__), "..", "assets", "user_avatar.png")
 
     def __init__(self):
         self.config_manager = ConfigManager()
@@ -31,8 +34,7 @@ class StreamlitApp:
                 gap:10px;flex-wrap:wrap;margin:0 0 14px 0;
                 font-weight:800;font-size:2rem;line-height:1.2;color:{self.BLUE};
             ">
-              <span style="font-size:2.1rem;">🏠</span>
-              <span>Casa Amigo – Rental Assistant Chatbot</span>
+              <span style="font-size:2.1rem;"> Your Rental Assistant Chatbot</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -144,10 +146,13 @@ class StreamlitApp:
                 border-left: 4px solid {self.BLUE};
               }}
 
-              /* Circular avatars */
-              [data-testid="stChatMessageAvatar"] img {{
+              /* Circular & bigger avatars */
+              [data-testid="stChatMessage"] img {{
                 border-radius: 50% !important;
                 border: 3px solid #fff;
+                width: 70px !important;
+                height: 70px !important;
+                object-fit: cover;
               }}
 
               /* Typing indicator */
@@ -200,10 +205,8 @@ class StreamlitApp:
 
     def _render_sidebar(self):
         with st.sidebar:
-            logo_path = os.path.join(
-                "C:\\Users\\Awandhana\\Downloads\\M.Sc\\DSS5105 - Data Science Projects in Practice\\casa-amigo-main",
-                "CALogo.png",
-            )
+            logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "logo.png")
+            
             if os.path.exists(logo_path):
                 st.image(logo_path, use_container_width=True)
             else:
@@ -211,10 +214,10 @@ class StreamlitApp:
 
             st.markdown("<div style='margin-top:4px;'></div>", unsafe_allow_html=True)
             st.markdown(
-                "<h3 style='text-align:center; color:white; font-weight:700; margin-bottom:2px;'>🏠 Casa Amigo – Rental Assistant Chatbot</h3>",
+                "<h3 style='text-align:center; color:white; font-weight:700; margin-bottom:2px'> Your Rental Assistant Chatbot</h3>",
                 unsafe_allow_html=True,
             )
-            st.markdown("<div class='ca-tagline'>Simplifying rentals, one chat at a time.</div>", unsafe_allow_html=True)
+            st.markdown("<div class='ca-tagline'>Simplifying rentals, <br>one chat at a time.</div>", unsafe_allow_html=True)
             st.divider()
 
             st.markdown("<h3 style='text-align:center;'>🐞 Feedback/Bug Report</h3>", unsafe_allow_html=True)
@@ -240,7 +243,7 @@ class StreamlitApp:
         for msg in st.session_state["messages"]:
             role = msg["role"]
             content = msg["content"]
-            avatar = "🧑‍💼" if role == "user" else "🤖"
+            avatar =self.user_icon if role == "user" else self.idle_icon
             bubble_class = "ca-user" if role == "user" else "ca-assist"
 
             with st.chat_message(role, avatar=avatar):
@@ -249,10 +252,10 @@ class StreamlitApp:
     def _handle_user_input(self):
         if user_query := st.chat_input("Type your message..."):
             st.session_state["messages"].append({"role": "user", "content": user_query})
-            with st.chat_message("user", avatar="🧑‍💼"):
+            with st.chat_message("user", avatar=self.user_icon):
                 st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
-
-            with st.chat_message("assistant", avatar="🤖"):
+            
+            with st.chat_message("assistant", avatar=self.thinking_icon):
                 placeholder = st.empty()
                 for _ in range(3):
                     dots_html = "<span class='ca-dot'></span>" * 3
@@ -262,6 +265,7 @@ class StreamlitApp:
                 placeholder.markdown(f"<div class='ca-bubble ca-assist'>{response}</div>", unsafe_allow_html=True)
 
             st.session_state["messages"].append({"role": "assistant", "content": response})
+            st.rerun()
 
         # Footer below chat box
         st.markdown(
