@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer
 from uuid import UUID
 from typing import Optional
+from datetime import timedelta
 
 # Import services
 from services import AuthService, UserService, TenantProfileService, ReminderService, ConversationService, PropertyService, TenancyService
@@ -18,6 +19,9 @@ from services.schema import (
 from core.exceptions import (
     NotFoundError, ValidationError, AuthenticationError, OperationError
 )
+
+from core.jwt_handler import create_access_token, get_current_user
+
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -68,11 +72,16 @@ async def login(email: str, password: str):
     """Authenticate user and return user info"""
     try:
         user = auth_service.login(email, password)
+        access_token = create_access_token(
+            user_id=user.get("user_id"),
+            expires_delta=timedelta(minutes=30)
+        )
         return {
             "user_id": user.get("user_id"),
             "email": user.get("email_id"),
             "name": user.get("name"),
-            "user_type": user.get("user_type")
+            "user_type": user.get("user_type"),
+            "access_token": access_token
         }
     except Exception as e:
         _handle_service_error(e, status_code=401)
@@ -81,7 +90,10 @@ async def login(email: str, password: str):
 # ==================== USER ROUTES ====================
 
 @app.get("/users/{user_id}", tags=["Users"])
-async def get_user(user_id: UUID):
+async def get_user(
+    user_id: UUID, 
+    current_user: UUID = Depends(get_current_user)
+):
     """Get user details by ID"""
     try:
         user = user_service.get_user(user_id)
@@ -101,7 +113,11 @@ async def create_user(user: UsersInsert):
 
 
 @app.put("/users/{user_id}", tags=["Users"])
-async def update_user(user_id: UUID, user: UsersUpdate):
+async def update_user(
+    user_id: UUID, 
+    user: UsersUpdate, 
+    current_user: UUID = Depends(get_current_user)
+):
     """Update user details"""
     try:
         updated_user = user_service.update_user(user_id, user)
@@ -113,7 +129,10 @@ async def update_user(user_id: UUID, user: UsersUpdate):
 # ==================== USER PROFILE ROUTES ====================
 
 @app.get("/tenantprofiles/{user_id}", tags=["Tenant Profiles"])
-async def get_tenant_profile(user_id: UUID):
+async def get_tenant_profile(
+    user_id: UUID, 
+    current_user: UUID = Depends(get_current_user)
+):
     """Get user's tenant profile"""
     try:
         profile = tenant_profile_service.get_profile(user_id)
@@ -133,7 +152,11 @@ async def create_tenant_profile(profile: TenantProfilesInsert):
 
 
 @app.put("/tenantprofiles/{profile_id}", tags=["Tenant Profiles"])
-async def update_tenant_profile(profile_id: UUID, profile: TenantProfilesUpdate):
+async def update_tenant_profile(
+    profile_id: UUID, 
+    profile: TenantProfilesUpdate,
+    current_user: UUID = Depends(get_current_user)
+):
     """Update user's tenant profile"""
     try:
         updated_profile = tenant_profile_service.update_profile(profile_id, profile)
@@ -145,7 +168,10 @@ async def update_tenant_profile(profile_id: UUID, profile: TenantProfilesUpdate)
 # ==================== REMINDERS ROUTES ====================
 
 @app.get("/reminders/{user_id}", tags=["Reminders"])
-async def list_reminders(user_id: UUID):
+async def list_reminders(
+    user_id: UUID, 
+    current_user: UUID = Depends(get_current_user)
+):
     """List all reminders for a user"""
     try:
         reminders = reminder_service.list_reminders(user_id)
@@ -155,7 +181,10 @@ async def list_reminders(user_id: UUID):
 
 
 @app.post("/reminders", tags=["Reminders"])
-async def create_reminder(reminder: RemindersInsert):
+async def create_reminder(
+    reminder: RemindersInsert, 
+    current_user: UUID = Depends(get_current_user)
+):
     """Create a new reminder"""
     try:
         created_reminder = reminder_service.create_reminder(reminder)
@@ -165,7 +194,11 @@ async def create_reminder(reminder: RemindersInsert):
 
 
 @app.post("/reminders/{reminder_id}/send", tags=["Reminders"])
-async def send_reminder(reminder_id: UUID, user_id: UUID):
+async def send_reminder(
+    reminder_id: UUID, 
+    user_id: UUID, 
+    current_user: UUID = Depends(get_current_user)
+):
     """Send/trigger a reminder (for agentic pipeline)"""
     try:
         notification = reminder_service.send_reminder(reminder_id, user_id)
@@ -177,7 +210,7 @@ async def send_reminder(reminder_id: UUID, user_id: UUID):
 # ==================== CONVERSATIONS ROUTES ====================
 
 @app.get("/conversations/{user_id}", tags=["Conversations"])
-async def list_conversations(user_id: UUID):
+async def list_conversations(user_id: UUID, current_user: UUID = Depends(get_current_user)):
     """List all conversations for a user"""
     try:
         conversations = conversation_service.list_conversations(user_id)
@@ -187,7 +220,11 @@ async def list_conversations(user_id: UUID):
 
 
 @app.post("/conversations/{conversation_id}/messages", tags=["Conversations"])
-async def add_message_to_conversation(conversation_id: UUID, message: MessagesInsert):
+async def add_message_to_conversation(
+    conversation_id: UUID, 
+    message: MessagesInsert,
+    current_user: UUID = Depends(get_current_user)
+):
     """Add a message to conversation history"""
     try:
         added_message = conversation_service.add_message(conversation_id, message)
@@ -197,7 +234,11 @@ async def add_message_to_conversation(conversation_id: UUID, message: MessagesIn
 
 
 @app.get("/conversations/{conversation_id}/messages", tags=["Conversations"])
-async def get_conversation_messages(conversation_id: UUID, limit: int = 50):
+async def get_conversation_messages(
+    conversation_id: UUID, 
+    limit: int = 50,
+    current_user: UUID = Depends(get_current_user)
+):
     """Get all messages from a conversation"""
     try:
         messages = conversation_service.get_messages(conversation_id, limit)
@@ -206,7 +247,10 @@ async def get_conversation_messages(conversation_id: UUID, limit: int = 50):
         _handle_service_error(e)
 
 @app.post("/conversations", tags=["Conversations"])
-async def create_conversation(conversation: ConversationsInsert):
+async def create_conversation(
+    conversation: ConversationsInsert,
+    current_user: UUID = Depends(get_current_user)
+):
     """Create a new conversation"""
     try:
         created_conversation = conversation_service.create_conversation(conversation)
@@ -217,7 +261,10 @@ async def create_conversation(conversation: ConversationsInsert):
 # ==================== PROPERTY PREFERENCES ROUTES ====================
 
 @app.get("/preferences/{user_id}", tags=["Property Preferences"])
-async def get_property_preferences(user_id: UUID):
+async def get_property_preferences(
+    user_id: UUID, 
+    current_user: UUID = Depends(get_current_user)
+):
     """Get user's property preferences"""
     try:
         preferences = property_service.get_preferences(user_id)
@@ -227,7 +274,10 @@ async def get_property_preferences(user_id: UUID):
 
 
 @app.post("/preferences", tags=["Property Preferences"])
-async def create_property_preferences(preferences: PropertyPreferencesInsert):
+async def create_property_preferences(
+    preferences: PropertyPreferencesInsert,
+    current_user: UUID = Depends(get_current_user)
+):
     """Create user's property preferences"""
     try:
         created_preferences = property_service.create_preferences(preferences)
@@ -237,7 +287,11 @@ async def create_property_preferences(preferences: PropertyPreferencesInsert):
 
 
 @app.put("/preferences/{preference_id}", tags=["Property Preferences"])
-async def update_property_preferences(preference_id: UUID, preferences: PropertyPreferencesUpdate):
+async def update_property_preferences(
+    preference_id: UUID, 
+    preferences: PropertyPreferencesUpdate,
+    current_user: UUID = Depends(get_current_user)
+):
     """Update user's property preferences"""
     try:
         updated_preferences = property_service.update_preferences(preference_id, preferences)
@@ -259,7 +313,10 @@ async def get_properties(limit: int = 20, offset: int = 0):
 
 
 @app.post("/properties/search", tags=["Properties"])
-async def search_properties_by_preferences(user_id: UUID):
+async def search_properties_by_preferences(
+    user_id: UUID, 
+    current_user: UUID = Depends(get_current_user)
+):
     """Search properties matching user's preferences"""
     try:
         matching_properties = property_service.search_by_preferences(user_id)

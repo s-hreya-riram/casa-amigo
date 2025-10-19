@@ -43,34 +43,12 @@ The app is specifically tailored for Singapore's rental market, including HDB re
    pip install -r requirements.txt
    ```
 
-4. Configure your OpenAI API key using Streamlit secrets:
-   Copy the template and configure:
-   ```bash
-   cp .streamlit/secrets.toml.template .streamlit/secrets.toml
-   ```
+4. Configure your credentials using Streamlit secrets (frontend-related) and (or) your .env (backend-related):
 
    Locate the OpenAI API key in https://platform.openai.com/settings/organization/api-keys, 
    the project_name from https://supabase.com/dashboard/project/upendnxzcnatkvlmkkfn/settings/general (look for projectID),
    the Supabase API credentials in 
-   https://supabase.com/dashboard/project/upendnxzcnatkvlmkkfn/settings/api-keys,
-   the JWT keys in https://supabase.com/dashboard/project/upendnxzcnatkvlmkkfn/settings/jwt and to edit `.streamlit/secrets.toml`
-   ```toml
-   [openai]
-   api_key = "your_openai_api_key_here"
-
-   [supabase]
-   # these are API level keys
-   url = "supabase_url"
-   anon_key = "supabase_anon_key" # auth access for the frontend
-   service_key = "supabase_service_key" # allows backend by bypass RLS checks to perform read/write to the tables
-
-   [jwt]
-   # backend uses algorithm and url to verify JSON web tokens issued by Supabase Auth
-   algorithm=ES256
-   url=https://<project_name>.supabase.co/auth/v1/.well-known/jwks.json 
-   # issuer and audience are optional fields for now, can be used if we implement token validation
-   issuer=https://<project_name>.supabase.co/auth/v1
-   audience=authenticated
+   https://supabase.com/dashboard/project/upendnxzcnatkvlmkkfn/settings/api-keys
    ```
 
 ### Streamlit Cloud Deployment
