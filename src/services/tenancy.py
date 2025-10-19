@@ -8,8 +8,12 @@ class TenancyService(BaseService):
     
     def create_agreement(self, agreement: TenancyAgreementsInsert) -> Dict:
         """Create tenancy agreement"""
+        data = agreement.model_dump()
+        data.pop("agreement_id", None)  # Let DB generate UUID
+        data.pop("created_at", None)  # Let DB generate created_at
+        data.pop("updated_at", None)  # Let DB generate updated_at
         data = self._execute_query(
-            lambda: self.client.table("tenancy_agreements").insert(agreement.model_dump()),
+            lambda: self.client.table("tenancy_agreements").insert(data),
             "Create agreement"
         )
         return data[0] if data else {}

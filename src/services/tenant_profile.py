@@ -18,8 +18,12 @@ class TenantProfileService(BaseService):
     
     def create_profile(self, profile: TenantProfilesInsert) -> Dict:
         """Create tenant profile"""
+        data = profile.model_dump()
+        data.pop("profile_id", None)  # Let DB generate UUID
+        data.pop("created_at", None)  # Let DB generate created_at
+        data.pop("updated_at", None)  # Let DB generate updated_at
         data = self._execute_query(
-            lambda: self.client.table("tenant_profiles").insert(profile.model_dump()),
+            lambda: self.client.table("tenant_profiles").insert(data),
             "Create tenant profile"
         )
         return data[0] if data else {}
