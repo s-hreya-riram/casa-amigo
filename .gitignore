@@ -9,5 +9,5 @@ entities/
 .vscode/
 
 # Streamlit secrets (keep template, ignore actual secrets)
-.streamlit/secrets.toml
+**/.streamlit/secrets.toml
 !.streamlit/secrets.toml.template

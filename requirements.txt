@@ -55,3 +55,9 @@ pydantic >=1.10.0
 # Authentication dependencies
 python-jose[cryptography] >=3.3.0
 passlib[bcrypt] >=1.7.4
+
+# Web scraping with Selenium
+beautifulsoup4 >=4.12.0
+lxml >=4.9.0
+selenium >=4.8.0
+webdriver-manager >=3.8.5

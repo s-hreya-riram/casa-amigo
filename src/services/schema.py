@@ -74,36 +74,39 @@ class MessagesBaseSchema(CustomModel):
 
 
 class PropertiesBaseSchema(CustomModel):
-    """Properties Base Schema."""
+	"""Properties Base Schema."""
 
-    # Primary Keys
-    property_id: UUID4
+	# Primary Keys
+	property_id: UUID4
 
-    # Columns
-    address: str | None = Field(default=None)
-    amenities: dict | list[dict] | list[Any] | Json | None = Field(default=None)
-    available_from: datetime.datetime | None = Field(default=None)
-    created_at: datetime.datetime | None = Field(default=None)
-    deposit: Decimal | None = Field(default=None)
-    floor_level: Decimal | None = Field(default=None)
-    furnished: bool | None = Field(default=None)
-    image_embeddings: Any | None = Field(default=None)
-    is_basement: bool | None = Field(default=None)
-    is_pet_friendly: bool | None = Field(default=None)
-    is_top_floor: bool | None = Field(default=None)
-    latitude: Decimal | None = Field(default=None)
-    lease_term_options_in_months: list[Decimal] | None = Field(default=None)
-    listing_status: str | None = Field(default=None)
-    location_earth: Any | None = Field(default=None)
-    longitude: Decimal | None = Field(default=None)
-    neighborhood: str | None = Field(default=None)
-    num_bathrooms: Decimal | None = Field(default=None)
-    num_bedrooms: Decimal
-    property_age: Decimal | None = Field(default=None)
-    property_type: str | None = Field(default=None)
-    rent: Decimal | None = Field(default=None)
-    sqft: Decimal | None = Field(default=None)
-    updated_at: datetime.datetime | None = Field(default=None)
+	# Columns
+	address: str | None = Field(default=None)
+	amenities: dict | list[dict] | list[Any] | Json | None = Field(default=None)
+	available_from: datetime.datetime | None = Field(default=None)
+	created_at: datetime.datetime | None = Field(default=None)
+	deposit: Decimal | None = Field(default=None)
+	floor_level: Decimal | None = Field(default=None)
+	furnished: bool | None = Field(default=None)
+	image_embeddings: Any | None = Field(default=None)
+	is_basement: bool | None = Field(default=None)
+	is_pet_friendly: bool | None = Field(default=None)
+	is_top_floor: bool | None = Field(default=None)
+	latitude: Decimal | None = Field(default=None)
+	lease_term_options_in_months: list[Decimal] | None = Field(default=None)
+	listing_id: Decimal | None = Field(default=None)
+	listing_status: str | None = Field(default=None)
+	location_earth: Any | None = Field(default=None)
+	longitude: Decimal | None = Field(default=None)
+	mrt_info: str | None = Field(default=None)
+	neighborhood: str | None = Field(default=None)
+	num_bathrooms: Decimal | None = Field(default=None)
+	num_bedrooms: Decimal
+	property_age: Decimal | None = Field(default=None)
+	property_type: str | None = Field(default=None)
+	rent: Decimal | None = Field(default=None)
+	rent_psf: Decimal | None = Field(default=None)
+	sqft: Decimal | None = Field(default=None)
+	updated_at: datetime.datetime | None = Field(default=None)
 
 
 class PropertyAgentBaseSchema(CustomModel):
