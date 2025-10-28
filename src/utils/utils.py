@@ -2,6 +2,7 @@
 # ---------------------------------------------------------------------
 # Contains async running wrapper for agents parallel workflow to work in streamlit env
 # Contains clause formatting for lease qna tool
+# Contains geomapping helper functions for answering questions about neighbourhoods
 # ---------------------------------------------------------------------
 from __future__ import annotations
 import re
@@ -11,6 +12,11 @@ import asyncio
 import re
 from textwrap import shorten
 from llama_index.core.tools import FunctionTool, ToolMetadata
+import math, time, requests
+from functools import lru_cache
+
+
+# -------------- Clause detection & formatting helpers ------------------
 
 
 # Try to match common clause header styles:
@@ -93,10 +99,40 @@ def format_with_citations(resp, min_items: int = 1) -> str:
 
     return "\n".join(lines)
 
-async def _run_workflow(workflow, message, memory):
-    return await workflow.run(user_msg=message, memory=memory)
+import re
 
-def run_sync(workflow, message, memory):
+def pretty_lease_output(raw: str) -> str:
+    """
+    Take the string from format_with_citations(...) and reflow bullets
+    so each '• ...' starts on its own line with consistent spacing.
+    """
+    # 1. Normalize double spaces after headers
+    text = raw.strip()
+
+    # 2. Ensure headers are on their own lines
+    text = re.sub(r"\*\*Answer\*\*\s*", "**Answer**\n", text)
+    text = re.sub(r"\*\*Relevant excerpts\*\*\s*", "**Relevant excerpts**\n", text)
+
+    # 3. Put each bullet on its own line, and add a blank line between bullets.
+    #    We'll turn "• something • something" into:
+    #    "• something\n\n• something"
+    text = re.sub(r"\s*•\s*", "\n• ", text)  # each bullet starts on new line
+    # Now add a blank line between bullets for readability
+    # We only add blank lines between consecutive bullets, not before the first.
+    text = re.sub(r"\n• (.+?)(?=\n•|\Z)", r"\n• \1\n", text, flags=re.DOTALL)
+
+    # strip trailing whitespace so we don't show extra blank lines at bottom
+    return text.strip()
+
+
+
+# ------------------ Async workflow runner for sync contexts --------------
+
+
+async def _run_workflow(workflow, message, memory,  **kwargs):
+    return await workflow.run(user_msg=message, memory=memory,  **kwargs)
+
+def run_sync(workflow, message, memory, **kwargs):
     try:
         return asyncio.run(_run_workflow(workflow, message, memory))
     except RuntimeError as e:
@@ -108,12 +144,12 @@ def run_sync(workflow, message, memory):
             except Exception:
                 pass
             loop = asyncio.get_event_loop()
-            return loop.run_until_complete(_run_workflow(workflow, message, memory))
+            return loop.run_until_complete(_run_workflow(workflow, message, memory,  **kwargs))
         elif "no running event loop" in msg:
             loop = asyncio.new_event_loop()
             try:
                 asyncio.set_event_loop(loop)
-                return loop.run_until_complete(_run_workflow(workflow, message, memory))
+                return loop.run_until_complete(_run_workflow(workflow, message, memory,  **kwargs))
             finally:
                 loop.close()
         else:
@@ -146,3 +182,127 @@ def extract_text(agent_output) -> str:
             return str(c)
     return str(out)
 
+## ------------------ Geomapping helpers --------------------------------
+
+OSM_USER_AGENT = "CasaAmigo/1.0 (student demo; contact: example@example.com)"  # <-- change
+
+def haversine_m(lat1, lon1, lat2, lon2) -> float:
+    R = 6371000.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlmb = math.radians(lon2 - lon1)
+    a = math.sin(dphi/2)**2 + math.cos(p1)*math.cos(p2)*math.sin(dlmb/2)**2
+    return 2 * R * math.asin(math.sqrt(a))
+
+def minutes_walk(distance_m: float, speed_kmh: float = 4.8) -> int:
+    m_per_min = (speed_kmh * 1000) / 60.0
+    return max(1, round(distance_m / m_per_min))
+
+@lru_cache(maxsize=256)
+def geocode(address: str) -> Optional[tuple[float, float, str]]:
+    """Nominatim geocode → (lat, lon, display_name) or None."""
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {"q": address, "format": "json", "limit": 1}
+    r = requests.get(url, params=params, headers={"User-Agent": OSM_USER_AGENT}, timeout=15)
+    r.raise_for_status()
+    data = r.json()
+    if not data:
+        return None
+    lat = float(data[0]["lat"]); lon = float(data[0]["lon"])
+    return (lat, lon, data[0].get("display_name", address))
+
+import json
+
+def overpass(query: str) -> dict:
+    """
+    Call Overpass. Always return a dict.
+    Never raise.
+    On any failure, return {'elements': []} instead of exploding.
+    """
+
+    url = "https://overpass-api.de/api/interpreter"
+
+    try:
+        resp = requests.post(
+            url,
+            data={"data": query},
+            timeout=10,
+            headers={"Accept": "application/json"},
+        )
+    except Exception as e:
+        print("OVERPASS NETWORK ERROR:", e)
+        return {"elements": []}  # <- NO RAISE
+
+    # If HTTP not 200, don't raise, just return empty.
+    if resp.status_code != 200:
+        print("OVERPASS BAD STATUS:", resp.status_code, resp.text[:200])
+        return {"elements": []}
+
+    # Try to parse JSON. If broken, return empty.
+    try:
+        data = resp.json()
+    except json.JSONDecodeError as e:
+        print("OVERPASS BAD JSON:", e, resp.text[:200])
+        return {"elements": []}
+
+    # Guarantee shape
+    if not isinstance(data, dict):
+        return {"elements": []}
+    if "elements" not in data or not isinstance(data["elements"], list):
+        data["elements"] = []
+
+    return data
+
+# Map high-level categories → OSM tags
+POI_TAGS = {
+    "mrt":       [{'key': 'railway', 'val': 'station'}, {'key':'public_transport','val':'station'}],
+    "subway":    [{'key': 'railway', 'val': 'station'}],
+    "train":     [{'key': 'railway', 'val': 'station'}],
+    "bus":       [{'key': 'highway', 'val': 'bus_stop'}],
+    "school":    [{'key': 'amenity', 'val': 'school'}],
+    "university":[{'key': 'amenity', 'val': 'university'}],
+    "hospital":  [{'key': 'amenity', 'val': 'hospital'}],
+    "clinic":    [{'key': 'amenity', 'val': 'clinic'}],
+    "supermarket":[{'key': 'shop', 'val': 'supermarket'}],
+    "park":      [{'key': 'leisure', 'val': 'park'}],
+}
+
+""""""
+
+def build_overpass_around(lat: float, lon: float, tags_groups: list[list[dict]], radius_m: int) -> str:
+    
+
+    def render_tag_filters(tag_list: list[dict]) -> str:
+        parts = []
+        for t in tag_list:
+            k = t["key"]
+            v = t.get("val")
+            if v is None:
+                parts.append(f'["{k}"]')
+            else:
+                parts.append(f'["{k}"="{v}"]')
+        return "".join(parts)
+
+    clause_lines = []
+    for tag_list in tags_groups:
+        flt = render_tag_filters(tag_list)
+        clause_lines.append(f'  node{flt}(around:{radius_m},{lat},{lon});')
+        clause_lines.append(f'  way{flt}(around:{radius_m},{lat},{lon});')
+        clause_lines.append(f'  relation{flt}(around:{radius_m},{lat},{lon});')
+
+    query = f"""
+[out:json][timeout:30];
+(
+{chr(10).join(clause_lines)}
+);
+out center 20;
+""".strip()
+
+    return query
+
+
+
+def osm_url(elem: dict) -> str:
+    et = elem.get("type", "node")
+    eid = elem.get("id")
+    return f"https://www.openstreetmap.org/{et}/{eid}"

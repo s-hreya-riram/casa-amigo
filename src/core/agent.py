@@ -65,7 +65,7 @@ class CasaAmigoAgent:
             model=self.config.model,
             api_key=api_key,
             temperature=self.config.temperature,
-            callback_manager=self._cb_manager,  # OK across versions
+            callback_manager=self._cb_manager,  
         )
 
         # ---- Tools -----------------------------------------------------------
@@ -99,7 +99,7 @@ class CasaAmigoAgent:
         """
 
         # Run the async workflow with a robust sync helper
-        out = run_sync(self.workflow, message, self.memory)
+        out = run_sync(self.workflow, message, self.memory, max_iterations=6)
 
         # Captures tool calls for debug panel 
         self._last_tool_calls = []
