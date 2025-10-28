@@ -24,8 +24,6 @@ class StreamlitApp:
         self.config_manager = ConfigManager()
         self.doc_manager = DocumentIndexManager()
         self.chatbot = CasaAmigoAgent(self.doc_manager.index, self.config_manager.api_key)
-
-        self.logo_base64 = None  # for top-centered logo
         self._setup_page()
         self._inject_styles()
         self._initialize_session_state()
@@ -33,9 +31,6 @@ class StreamlitApp:
     # page chrome
     def _setup_page(self):
         st.set_page_config(page_title="Casa Amigo Chatbot", page_icon="🏠", layout="wide")
-        self._add_logo()  # top centered logo (base64)
-
-        # styled title
         st.markdown(
             f"""
             <div style="
@@ -44,27 +39,6 @@ class StreamlitApp:
                 font-weight:800;font-size:2rem;line-height:1.2;color:{self.BLUE};
             ">
               <span style="font-size:2.1rem;"> Your Rental Assistant Chatbot</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    def _add_logo(self):
-        """Top center logo using base64 (from teammate’s version)."""
-        logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "logo.png")
-        if self.logo_base64 is None:
-            try:
-                with open(logo_path, "rb") as f:
-                    self.logo_base64 = base64.b64encode(f.read()).decode()
-            except (FileNotFoundError, IOError):
-                st.warning("⚠️ Logo file not found at assets/logo.png")
-                return
-
-        st.markdown(
-            f"""
-            <style>.logo {{ text-align: center; }}</style>
-            <div class="logo">
-              <img src="data:image/png;base64,{self.logo_base64}" width="200">
             </div>
             """,
             unsafe_allow_html=True,
