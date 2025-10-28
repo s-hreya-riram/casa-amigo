@@ -29,7 +29,29 @@ Assistant: [CALL TOOL neighborhood_researcher with {address:"10 eunos road 8, si
 
 3) For dimensions (“will a 200×40 cm sofa fit?”) use fit_checker.
 
-4) For reminders/emails/checklists/export/scheduling viewings, use workflow_helper.
+4) For reminders, emails, scheduling follow-ups, or checklists related to the tenancy, use `notification_workflow_tool`.
+   - Use `notification_workflow_tool` to CREATE or LIST reminders for the tenant.
+   - A reminder is something like:
+     • Sign letter of intent (type_id=1)
+     • Pay security deposit (type_id=2)
+     • Sign lease (type_id=3)
+     • Pay rent monthly (type_id=4, recurring)
+     • Review renewal notice / give notice (type_id=5)
+     • Move out (type_id=6)
+   - Before calling `notification_workflow_tool` with action="create":
+     • Collect what the reminder is for (description).
+     • Map it to the correct reminder_type_id (1..6).
+     • Ask WHEN they want to be reminded:
+         - For one-off tasks (LOI, deposit, sign lease, move out), ask for a specific date/time.
+         - For rent (type 4), ask “Which day of the month?” and “What time?”
+         - For renewal notice (type 5) or move out (type 6), you may call `date_calculator` first to compute a notice date, then create the reminder for that date.
+     • Only once you have (task + when) do you call `notification_workflow_tool(action="create", ...)`.
+   - After calling `notification_workflow_tool`, return its message directly to the user.
+
+   - Use `notification_workflow_tool` with:
+     action="list" to show all active reminders,
+     action="cancel" to cancel one by id,
+     action="send" to trigger one now.
 
 5) For preferences (“what suits me?”), use persona_ranker and explain the score.
 

@@ -1,129 +1,16 @@
 # utils/utils.py
 # ---------------------------------------------------------------------
 # Contains async running wrapper for agents parallel workflow to work in streamlit env
-# Contains clause formatting for lease qna tool
-# Contains geomapping helper functions for answering questions about neighbourhoods
+# Contains geomapping helpers for neighbourhood researcher
+# Contains text clause formatting for lease qna tool
 # ---------------------------------------------------------------------
 from __future__ import annotations
 import re
 from textwrap import shorten
 from typing import Optional
 import asyncio
-import re
-from textwrap import shorten
-from llama_index.core.tools import FunctionTool, ToolMetadata
-import math, time, requests
+import math, requests
 from functools import lru_cache
-
-
-# -------------- Clause detection & formatting helpers ------------------
-
-
-# Try to match common clause header styles:
-#  1) "8. Diplomatic Clause", "8.2 Early Termination", "8(b) ..."
-#  2) "Clause 8(b): Diplomatic Clause"
-#  3) "Special Clause: Diplomatic Clause"
-#  4) Named only: "Diplomatic Clause"
-CLAUSE_HEADER_RE = re.compile(
-    r"""(?imx)
-    ^
-    (?:
-        \s*(?:Clause\s*)?
-        (?P<num>\d+(?:\.\d+)*(?:\([a-zA-Z]\))?)
-        [\s.:–-]+
-        (?P<title>[A-Za-z][^\n]{0,80})
-      |
-        \s*Special\s+Clause[\s.:–-]+
-        (?P<title_only>[A-Za-z][^\n]{0,80})
-      |
-        \s*(?P<named>(?:Diplomatic|Break|Early\s+Termination)\s+Clause)
-    )
-    """
-)
-
-def detect_clause_label_from_text(text: str) -> Optional[str]:
-    """Return a nice 'Clause X: Title' label by parsing `text` if metadata is missing."""
-    if not text:
-        return None
-    m = CLAUSE_HEADER_RE.search(text)
-    if not m:
-        return None
-    num = m.groupdict().get("num")
-    title = m.groupdict().get("title")
-    title_only = m.groupdict().get("title_only")
-    named = m.groupdict().get("named")
-    if num and title:
-        return f"Clause {num}: {title.strip(' -–:')[:80]}"
-    if title_only:
-        return f"Special Clause: {title_only.strip(' -–:')[:80]}"
-    if named:
-        return named
-    return None
-
-def excerpt(text: str, width: int = 320) -> str:
-    """Collapse whitespace and shorten with an ellipsis."""
-    return shorten(re.sub(r"\s+", " ", text or "").strip(), width=width, placeholder="…")
-
-def format_with_citations(resp, min_items: int = 1) -> str:
-    """Return 'Answer' + 'Relevant excerpts' with clause labels when available."""
-    answer_text = resp.response if getattr(resp, "response", None) else str(resp)
-    lines = ["**Answer**", answer_text, "", "**Relevant excerpts**"]
-
-    seen = set()
-    count = 0
-    for sn in getattr(resp, "source_nodes", []) or []:
-        node = sn.node
-        meta = (getattr(node, "metadata", {}) or {})
-        clause_num = meta.get("clause_num")
-        clause_title = meta.get("clause_title")
-        page = meta.get("page_label") or meta.get("page")
-
-        label = None
-        if clause_num or clause_title:
-            label = f"Clause {clause_num}: {clause_title}" if clause_num else clause_title
-        if not label:
-            label = detect_clause_label_from_text(node.text or "")
-        if not label:
-            label = f"Page {page}" if page is not None else "Clause (unspecified)"
-
-        key = (label, (node.text or "")[:80])
-        if key in seen:
-            continue
-        seen.add(key)
-
-        lines.append(f"• *{label}* — “{excerpt(node.text)}”")
-        count += 1
-
-    if count < min_items:
-        lines.append("• _No clearly relevant clauses were found above the confidence threshold._")
-
-    return "\n".join(lines)
-
-import re
-
-def pretty_lease_output(raw: str) -> str:
-    """
-    Take the string from format_with_citations(...) and reflow bullets
-    so each '• ...' starts on its own line with consistent spacing.
-    """
-    # 1. Normalize double spaces after headers
-    text = raw.strip()
-
-    # 2. Ensure headers are on their own lines
-    text = re.sub(r"\*\*Answer\*\*\s*", "**Answer**\n", text)
-    text = re.sub(r"\*\*Relevant excerpts\*\*\s*", "**Relevant excerpts**\n", text)
-
-    # 3. Put each bullet on its own line, and add a blank line between bullets.
-    #    We'll turn "• something • something" into:
-    #    "• something\n\n• something"
-    text = re.sub(r"\s*•\s*", "\n• ", text)  # each bullet starts on new line
-    # Now add a blank line between bullets for readability
-    # We only add blank lines between consecutive bullets, not before the first.
-    text = re.sub(r"\n• (.+?)(?=\n•|\Z)", r"\n• \1\n", text, flags=re.DOTALL)
-
-    # strip trailing whitespace so we don't show extra blank lines at bottom
-    return text.strip()
-
 
 
 # ------------------ Async workflow runner for sync contexts --------------
@@ -306,3 +193,146 @@ def osm_url(elem: dict) -> str:
     et = elem.get("type", "node")
     eid = elem.get("id")
     return f"https://www.openstreetmap.org/{et}/{eid}"
+
+# ------------------ Lease clause formatting helpers ----------------------
+
+# Try to match common clause header styles:
+#  1) "8. Diplomatic Clause", "8.2 Early Termination", "8(b) ..."
+#  2) "Clause 8(b): Diplomatic Clause"
+#  3) "Special Clause: Diplomatic Clause"
+#  4) Named only: "Diplomatic Clause"
+CLAUSE_HEADER_RE = re.compile(
+    r"""(?imx)
+    ^
+    (?:
+        \s*(?:Clause\s*)?
+        (?P<num>\d+(?:\.\d+)*(?:\([a-zA-Z]\))?)
+        [\s.:–-]+
+        (?P<title>[A-Za-z][^\n]{0,80})
+      |
+        \s*Special\s+Clause[\s.:–-]+
+        (?P<title_only>[A-Za-z][^\n]{0,80})
+      |
+        \s*(?P<named>(?:Diplomatic|Break|Early\s+Termination)\s+Clause)
+    )
+    """
+)
+
+def detect_clause_label_from_text(text: str) -> Optional[str]:
+    """Return a nice 'Clause X: Title' label by parsing `text` if metadata is missing."""
+    if not text:
+        return None
+    m = CLAUSE_HEADER_RE.search(text)
+    if not m:
+        return None
+    num = m.groupdict().get("num")
+    title = m.groupdict().get("title")
+    title_only = m.groupdict().get("title_only")
+    named = m.groupdict().get("named")
+    if num and title:
+        return f"Clause {num}: {title.strip(' -–:')[:80]}"
+    if title_only:
+        return f"Special Clause: {title_only.strip(' -–:')[:80]}"
+    if named:
+        return named
+    return None
+
+def excerpt(text: str, width: int = 320) -> str:
+    """Collapse whitespace and shorten with an ellipsis."""
+    return shorten(re.sub(r"\s+", " ", text or "").strip(), width=width, placeholder="…")
+
+def format_with_citations(resp, min_items: int = 1) -> str:
+    """Return 'Answer' + 'Relevant excerpts' with clause labels when available."""
+    answer_text = resp.response if getattr(resp, "response", None) else str(resp)
+    lines = ["**Answer**", answer_text, "", "**Relevant excerpts**"]
+
+    seen = set()
+    count = 0
+    for sn in getattr(resp, "source_nodes", []) or []:
+        node = sn.node
+        meta = (getattr(node, "metadata", {}) or {})
+        clause_num = meta.get("clause_num")
+        clause_title = meta.get("clause_title")
+        page = meta.get("page_label") or meta.get("page")
+
+        label = None
+        if clause_num or clause_title:
+            label = f"Clause {clause_num}: {clause_title}" if clause_num else clause_title
+        if not label:
+            label = detect_clause_label_from_text(node.text or "")
+        if not label:
+            label = f"Page {page}" if page is not None else "Clause (unspecified)"
+
+        key = (label, (node.text or "")[:80])
+        if key in seen:
+            continue
+        seen.add(key)
+
+        lines.append(f"• *{label}* — “{excerpt(node.text)}”")
+        count += 1
+
+    if count < min_items:
+        lines.append("• _No clearly relevant clauses were found above the confidence threshold._")
+
+    return "\n".join(lines)
+
+
+
+def pretty_lease_output(raw: str) -> str:
+    """
+    Format lease_qna output as HTML for UI rendering.
+    Assumes the UI will render with unsafe_allow_html=True / dangerouslySetInnerHTML.
+    """
+    text = raw.strip()
+
+    # 1. Remove the "**Answer**" prefix completely.
+    text = re.sub(
+        r"\*\*Answer\*\*[:\s]*",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    # 2. Replace "**Relevant excerpts**" with a styled subheading + spacing.
+    #    We insert <br><br> above and below to force visual separation.
+    text = re.sub(
+        r"\*\*Relevant excerpts\*\*[:\s]*",
+        "<br><br>"
+        "<div style='font-size:0.95em; font-weight:600; color:#000;'>"
+        "Relevant excerpts from your lease:"
+        "</div>"
+        "<br>",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    # 3. Strip raw markdown emphasis chars from the lease text
+    #    (the OCR/pdf often leaves random * and _ that render as italics or squished text).
+    text = re.sub(r"[*_]{1,2}", "", text)
+
+    # 4. Put each bullet on its own line in HTML.
+    #    We'll turn any inline " • " into "<br>• ".
+    text = re.sub(r"\s*•\s*", "<br>• ", text)
+
+    # 5. Bold only the clause/page labels after the bullet.
+    #    Example: • Clause 200: ... → • <b>Clause 200:</b> ...
+    text = re.sub(
+        r"(•\s*)(Clause\s*\d+[^:]*:)",
+        r"\1<b>\2</b>",
+        text,
+    )
+    text = re.sub(
+        r"(•\s*)(Page\s*\d+[^:]*:)",
+        r"\1<b>\2</b>",
+        text,
+    )
+
+    # 6. Collapse any triple <br> down to double so spacing isn't huge.
+    text = re.sub(r"(<br>\s*){3,}", "<br><br>", text)
+
+    # 7. Trim leading/trailing whitespace/br
+    text = text.strip()
+    text = re.sub(r"^(<br>\s*)+", "", text)
+    text = re.sub(r"(<br>\s*)+$", "", text)
+
+    return text
