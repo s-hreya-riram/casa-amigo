@@ -8,14 +8,14 @@ from typing import List, Dict, Any
 from utils.tool_registry import consume_debug_log
 from config import ConfigManager
 from core import DocumentIndexManager, CasaAmigoAgent
+import requests
 
 class StreamlitApp:
-    """Tenant-only app: agent+debug + styled UI"""
 
     # brand palette & asset paths
     RED: str = "#D84339"
     BLUE: str = "#2C4B8E"
-    NAVY: str = "#1F2A60"
+    NAVY: str = "#07090D"
     idle_icon = os.path.join(os.path.dirname(__file__), "..", "assets", "blink_robot_avatar.gif")
     thinking_icon = os.path.join(os.path.dirname(__file__), "..", "assets", "load_robot_avatar.gif")
     user_icon = os.path.join(os.path.dirname(__file__), "..", "assets", "user_avatar.png")
@@ -45,7 +45,7 @@ class StreamlitApp:
         )
 
     def _inject_styles(self):
-        """Your Casa Amigo styling (gradient sidebar, bubbles, avatars, footer, red focus)."""
+        """styling (gradient sidebar, bubbles, avatars, footer, red focus)"""
         st.markdown(
             f"""
             <style>
@@ -129,6 +129,65 @@ class StreamlitApp:
 
               .ca-footer {{ text-align:center; font-size:.85rem; color:rgba(255,255,255,0.8); margin-top:10px; }}
               .ca-main-footer {{ text-align:center; font-size:.85rem; color:#666; margin-top:14px; opacity:.8; }}
+
+                /* Sidebar Login Section Styling */
+              div[data-testid="stExpander"] {{
+                border-radius: 14px !important;
+                background: rgba(255,255,255,0.1) !important;
+                border: 1px solid rgba(255,255,255,0.25) !important;
+                color: #fff !important;
+              }}
+
+              /* Inputs: light box + black text */
+              div[data-testid="stExpander"] input {{
+                background: #fff !important;
+                border: 1px solid rgba(255,255,255,0.6) !important;
+                border-radius: 8px !important;
+                color: #000 !important;               /* black text */
+                font-size: 0.9rem !important;
+                padding: 0.4rem 0.6rem !important;
+              }}
+              div[data-testid="stExpander"] input:focus {{
+                outline: none !important;
+                border: 1px solid {self.RED} !important; /* Casa Amigo red */
+                box-shadow: 0 0 5px rgba(216,67,57,0.3) !important;
+              }}
+
+              /* Buttons */
+              div[data-testid="stExpander"] .stButton > button {{
+                border: none !important;
+                background: {self.RED} !important;
+                color: #fff !important;
+                border-radius: 999px !important;
+                font-weight: 600 !important;
+                font-size: 0.9rem !important;        /* smaller font */
+                padding: 0.45rem 1.1rem !important;
+                width: 100%;
+                transition: all 0.2s ease-in-out;
+              }}
+              div[data-testid="stExpander"] .stButton > button:hover {{
+                background: #b7352d !important;
+                color: #fff !important;
+                transform: translateY(-1px);
+              }}
+
+              /* Status + label colors */
+              div[data-testid="stExpander"] label,
+              div[data-testid="stExpander"] p,
+              div[data-testid="stExpander"] .stCaption,
+              div[data-testid="stExpander"] .stInfo {{
+                color: rgba(255,255,255,0.9) !important;
+                font-size: 0.9rem !important;
+              }}
+
+                /* Expander title (🔐 Login / Logout) styling */
+              div[data-testid="stExpander"] > div:first-child p {{
+                font-size: 1.1rem !important;       /* same as Feedback title */
+                font-weight: 700 !important;        /* bold */
+                color: #FFFFFF !important;          /* white text */
+                text-align: center !important;
+              }}
+
             </style>
             """,
             unsafe_allow_html=True,
@@ -142,8 +201,79 @@ class StreamlitApp:
             ]
         if "bug_reports" not in st.session_state:
             st.session_state["bug_reports"] = []
+    
+        if "auth" not in st.session_state:
+            st.session_state["auth"] = {
+                "token": None,
+                "user_id": None,
+                "email": None,
+                "logged_in": False,
+            }
 
-    # Sidebar (merged: debug block + your feedback form)
+        # ========== AUTH HELPERS (LOCAL API) ==========
+    def _api_base(self) -> str:
+        # Use env var if present; default to local FastAPI
+        return os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
+
+    def _api_available(self) -> bool:
+        try:
+            r = requests.get(f"{self._api_base()}/health", timeout=2)
+            return r.ok
+        except Exception:
+            return False
+
+    def _api_login(self, email: str, password: str):
+
+        API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
+
+        email = (email or "").strip()
+        password = (password or "").strip()
+        if not email or not password:
+            st.error("Email and password are required.")
+            return False
+
+        try:
+            r = requests.post(
+                f"{API_BASE}/auth/login",
+                params={"email": email, "password": password},
+                timeout=15,
+            )
+            r.raise_for_status()
+            data = r.json()
+
+            token = data.get("access_token") or data.get("token")
+            user_id = data.get("user_id")
+            if token:
+                st.session_state["auth"] = {
+                    "token": token,
+                    "user_id": user_id,
+                    "email": data.get("email", email),
+                    "logged_in": True,
+                }
+                st.toast("Logged in.")
+                return True
+
+            st.error("Login response missing token.")
+        except requests.HTTPError as e:
+            try:
+                detail = r.json().get("detail")
+            except Exception:
+                detail = str(e)
+            st.error(f"Login failed: {detail}")
+        except Exception as e:
+            st.error(f"Login failed: {e}")
+        return False
+
+    def _api_logout(self):
+        st.session_state["auth"] = {
+            "token": None,
+            "user_id": None,
+            "email": None,
+            "logged_in": False,
+        }
+        st.toast("Logged out.")
+
+    # sidebar
     def _render_sidebar(self):
         with st.sidebar:
             # debug/config block (only when debug mode ON)
@@ -170,7 +300,7 @@ class StreamlitApp:
                 st.caption(f"Debug mode: {self.config_manager.get_debug_mode()}")
                 st.divider()
 
-            # Your sidebar visuals
+            # sidebar visuals
             logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "logo.png")
             if os.path.exists(logo_path):
                 st.image(logo_path, use_container_width=True)
@@ -184,6 +314,33 @@ class StreamlitApp:
             )
             st.markdown("<div class='ca-tagline'>Simplifying rentals, <br>one chat at a time.</div>", unsafe_allow_html=True)
             st.divider()
+        
+            #  Login / Logout
+            api_up = self._api_available()
+            with st.expander("🔐 Login / Logout", expanded=False):
+                if not api_up:
+                    st.info("Local API not detected at 127.0.0.1:8000 — login is disabled until the backend is running.")
+
+                email = st.text_input("Email", key="auth_email")
+                pwd   = st.text_input("Password", type="password", key="auth_pwd")
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("Login", use_container_width=True, disabled=not api_up):
+                        self._api_login(email, pwd)
+                with c2:
+                    if st.button("Logout", use_container_width=True, disabled=not st.session_state["auth"]["logged_in"]):
+                        self._api_logout()
+
+                auth = st.session_state["auth"]
+                if auth["logged_in"]:
+                    st.success(f"Logged in as: {auth.get('email') or 'user'}")
+                else:
+                    st.caption("You’re not logged in.")
+            
+            st.divider()
+
+            # feedback/bug report
 
             st.markdown("<h3 style='text-align:center;'>🐞 Feedback/Bug Report</h3>", unsafe_allow_html=True)
             with st.form("bugform", clear_on_submit=True):
@@ -191,7 +348,7 @@ class StreamlitApp:
                 submitted = st.form_submit_button("Submit")
                 if submitted and bug.strip():
                     st.session_state["bug_reports"].append(bug.strip())
-                    st.success("✅ Thanks for sharing. We truly appreciate your feedback!")
+                    st.success("Thanks for sharing! We truly appreciate your feedback.")
 
             st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
             st.divider()
@@ -204,7 +361,7 @@ class StreamlitApp:
 
             st.markdown("<div class='ca-footer'>⚡ Powered by Casa Amigo © 2025</div>", unsafe_allow_html=True)
 
-    # Chat handling
+    # chat handling
     def _display_chat_history(self):
         for msg in st.session_state["messages"]:
             role = msg["role"]
@@ -259,7 +416,7 @@ class StreamlitApp:
                             elif row["event"] == "tool_error":
                                 st.error(f"{row['tool']} error: {row['error']}")
 
-                    # Agent tool calls (if available)
+                    # agent tool calls (if available)
                     calls = self.chatbot.get_tool_calls() if hasattr(self.chatbot, "get_tool_calls") else []
                     if calls:
                         st.markdown("---")
@@ -282,9 +439,23 @@ class StreamlitApp:
     # main run
     def run(self):
         self._render_sidebar()
-        self._display_chat_history()
-        self._handle_user_input()
 
+        # tabs: Tenant (chat) | Agent (placeholder) 
+        tenant_tab, agent_tab = st.tabs(["👤 Tenant", "🧑‍💼 Agent"])
+
+        with tenant_tab:
+            self._display_chat_history()
+            self._handle_user_input()
+
+        with agent_tab:
+            st.subheader("Agent (preview)")
+            st.caption("This is a read-only placeholder.")
+            st.markdown(
+                "- (coming soon)\n"
+                "- (coming soon)\n"
+                "- (coming soon)"
+            )
+        
 
 if __name__ == "__main__":
     load_dotenv()
