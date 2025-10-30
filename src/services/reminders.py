@@ -1,3 +1,9 @@
+"""
+Reminder Service with notification support
+Email notifications are sent via Eventbridge and SES (through Lambda), 
+Lambda updates the status of reminders and updates records in reminder_notifications.
+"""
+
 from services.base import BaseService
 from services.schema import RemindersInsert, RemindersUpdate
 from core.exceptions import NotFoundError

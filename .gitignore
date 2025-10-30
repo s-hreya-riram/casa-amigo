@@ -7,6 +7,7 @@ pdf_index/
 supabase/
 entities/
 .vscode/
+lambda_reminder/
 
 # Streamlit secrets (keep template, ignore actual secrets)
 **/.streamlit/secrets.toml

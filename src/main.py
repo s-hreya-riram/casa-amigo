@@ -20,7 +20,7 @@ from core.exceptions import (
     NotFoundError, ValidationError, AuthenticationError, OperationError
 )
 
-from core.jwt_handler import create_access_token, get_current_user
+from core.config.jwt_handler import create_access_token, get_current_user
 
 
 # Initialize FastAPI app

@@ -1,4 +1,4 @@
-from core.supabase_client import SupabaseClient, SupabaseCredentialsError, SupabaseConnectionError
+from core.config.supabase_client import SupabaseClient, SupabaseCredentialsError, SupabaseConnectionError
 
 class SingletonSupabaseClient:
     _instance = None
