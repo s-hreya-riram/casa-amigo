@@ -5,9 +5,10 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
+import streamlit as st
 
 # Get SECRET_KEY from environment - fail if not set
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY") or st.secrets["jwt"]["secret_key"]
 if not SECRET_KEY:
     raise ValueError(
         "SECRET_KEY environment variable not set. "
