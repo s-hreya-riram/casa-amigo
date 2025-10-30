@@ -1,11 +1,15 @@
 from typing import Optional, Literal
 from pydantic import BaseModel, Field
 import requests
+from utils.current_auth import get_current_auth
 
 # ----------- TODO: GET THIS FROM STREAMLIT AFTER WE ADD LOGIN PAGE  // for testing purposes use curl and get replace with your auth token and test ------
 API_BASE = "http://127.0.0.1:8000"
-DEMO_USER_ID = "2dbe55f1-5332-461c-87f1-4f7dd76dbb8f"
-DEMO_AUTH_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZGJlNTVmMS01MzMyLTQ2MWMtODdmMS00ZjdkZDc2ZGJiOGYiLCJleHAiOjE3NjE2NTc5Njh9.BrOuZFFj3m214i-ta-3BWvY6npWRER11BVhvotXMAf0"
+#DEMO_USER_ID = "2dbe55f1-5332-461c-87f1-4f7dd76dbb8f"
+#EMO_AUTH_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZGJlNTVmMS01MzMyLTQ2MWMtODdmMS00ZjdkZDc2ZGJiOGYiLCJleHAiOjE3NjE4MTQyODR9.mWrEgJUw3mp-k_uSbtHbV1tMCJlQvg2dUIrQnzwo34U"
+
+#user_id = runtime.get("user_id") or DEMO_USER_ID
+#token = runtime.get("token") or DEMO_AUTH_TOKEN
 
 class ReminderInput(BaseModel):
     action: Optional[Literal["create", "list", "send", "cancel"]] = Field(
@@ -30,10 +34,10 @@ class ReminderInput(BaseModel):
 
 import requests
 
-def _auth_headers():
+def _auth_headers(token):
     # central place for auth header
     return {
-        "Authorization": f"Bearer {DEMO_AUTH_TOKEN}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
 
@@ -57,9 +61,13 @@ def notification_workflow_tool(
         data = {}
     data.update(kwargs or {})
 
+    runtime = get_current_auth()
+    print("hellooooooo Runtime auth from context:", runtime)
+    user_id = runtime.get("user_id") 
+    token = runtime.get("token") 
+
     # pull fields
     action = (data.get("action") or "create").lower()
-    user_id = data.get("user_id") or DEMO_USER_ID
     reminder_type_id = data.get("reminder_type_id")
     description = data.get("description")
     reminder_date = data.get("reminder_date")
@@ -84,7 +92,7 @@ def notification_workflow_tool(
         try:
             resp = requests.get(
                 f"{API_BASE}/reminders/{user_id}",
-                headers=_auth_headers(),
+                headers=_auth_headers(token),
                 timeout=5,
             )
             if resp.status_code != 200:
@@ -127,7 +135,7 @@ def notification_workflow_tool(
             resp = requests.post(
                 f"{API_BASE}/reminders/{reminder_id}/send",
                 params={"user_id": user_id},
-                headers=_auth_headers(),
+                headers=_auth_headers(token),
                 timeout=5,
             )
             if resp.status_code != 200:
@@ -169,7 +177,7 @@ def notification_workflow_tool(
         try:
             resp = requests.post(
                 f"{API_BASE}/reminders",
-                headers=_auth_headers(),
+                headers=_auth_headers(token),
                 json=payload,
                 timeout=5,
             )
@@ -207,7 +215,7 @@ def notification_workflow_tool(
     try:
         resp = requests.post(
             f"{API_BASE}/reminders",
-            headers=_auth_headers(),
+            headers=_auth_headers(token),
             json=payload,
             timeout=5,
         )

@@ -8,6 +8,7 @@ from core.config.jwt_handler import create_access_token
 from utils.tool_registry import consume_debug_log
 from config import ConfigManager
 from core import DocumentIndexManager, CasaAmigoAgent
+from utils.current_auth import set_current_auth
 
 class StreamlitApp:
 
@@ -151,6 +152,8 @@ class StreamlitApp:
                     placeholder.markdown("<div class='ca-typing'><span class='ca-dot'></span>"*3 + "</div>", unsafe_allow_html=True)
                     time.sleep(0.35)
                 try:
+                    auth = st.session_state.get("auth", {})
+                    set_current_auth(auth)
                     response = self.chatbot.chat(user_query)
                 except Exception:
                     response = "⚠️ Something went wrong."
