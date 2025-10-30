@@ -1,20 +1,23 @@
 # src/app.py
 import os
 import time
+import base64
 import streamlit as st
 from dotenv import load_dotenv
-from services.factory import auth_service
-from core.config.jwt_handler import create_access_token
+from typing import List, Dict, Any
 from utils.tool_registry import consume_debug_log
 from config import ConfigManager
 from core import DocumentIndexManager, CasaAmigoAgent
+
 from utils.current_auth import set_current_auth
+import requests
 
 class StreamlitApp:
 
-    RED = "#D84339"
-    BLUE = "#2C4B8E"
-    NAVY = "#07090D"
+    # brand palette & asset paths
+    RED: str = "#D84339"
+    BLUE: str = "#2C4B8E"
+    NAVY: str = "#07090D"
     idle_icon = os.path.join(os.path.dirname(__file__), "..", "assets", "blink_robot_avatar.gif")
     thinking_icon = os.path.join(os.path.dirname(__file__), "..", "assets", "load_robot_avatar.gif")
     user_icon = os.path.join(os.path.dirname(__file__), "..", "assets", "user_avatar.png")
@@ -27,6 +30,7 @@ class StreamlitApp:
         self._inject_styles()
         self._initialize_session_state()
 
+    # page chrome
     def _setup_page(self):
         st.set_page_config(page_title="Casa Amigo Chatbot", page_icon="🏠", layout="wide")
         st.markdown(
@@ -191,6 +195,7 @@ class StreamlitApp:
             unsafe_allow_html=True,
         )
 
+    # state
     def _initialize_session_state(self):
         if "messages" not in st.session_state:
             st.session_state["messages"] = [
@@ -198,6 +203,7 @@ class StreamlitApp:
             ]
         if "bug_reports" not in st.session_state:
             st.session_state["bug_reports"] = []
+    
         if "auth" not in st.session_state:
             st.session_state["auth"] = {
                 "token": None,
@@ -206,29 +212,54 @@ class StreamlitApp:
                 "logged_in": False,
             }
 
-    # ===== AUTH HELPERS =====
-    def login(self, email: str, password: str):
+        # ========== AUTH HELPERS (LOCAL API) ==========
+    def _api_base(self) -> str:
+        # Use env var if present; default to local FastAPI
+        return os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
+
+    def _api_login(self, email: str, password: str):
+
+        API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
+
         email = (email or "").strip()
         password = (password or "").strip()
         if not email or not password:
             st.error("Email and password are required.")
             return False
+
         try:
-            user = auth_service.login(email, password)
-            token = create_access_token(user_id=user.get("user_id"))
-            st.session_state["auth"] = {
-                "token": token,
-                "user_id": user.get("user_id"),
-                "email": user.get("email_id"),
-                "logged_in": True
-            }
-            st.toast("Logged in.")
-            return True
+            r = requests.post(
+                f"{API_BASE}/auth/login",
+                params={"email": email, "password": password},
+                timeout=15,
+            )
+            r.raise_for_status()
+            data = r.json()
+
+            token = data.get("access_token") or data.get("token")
+            user_id = data.get("user_id")
+            if token:
+                st.session_state["auth"] = {
+                    "token": token,
+                    "user_id": user_id,
+                    "email": data.get("email", email),
+                    "logged_in": True,
+                }
+                st.toast("Logged in.")
+                return True
+
+            st.error("Login response missing token.")
+        except requests.HTTPError as e:
+            try:
+                detail = r.json().get("detail")
+            except Exception:
+                detail = str(e)
+            st.error(f"Login failed: {detail}")
         except Exception as e:
             st.error(f"Login failed: {e}")
-            return False
+        return False
 
-    def logout(self):
+    def _api_logout(self):
         st.session_state["auth"] = {
             "token": None,
             "user_id": None,
@@ -237,23 +268,39 @@ class StreamlitApp:
         }
         st.toast("Logged out.")
 
-    # ===== SIDEBAR =====
+    # sidebar
     def _render_sidebar(self):
         with st.sidebar:
-            # Debug / config
+            # debug/config block (only when debug mode ON)
             if self.config_manager.get_debug_mode():
                 st.subheader("🔧 Configuration Status")
+
                 if st.button("🔁 Rebuild index (parse clauses)"):
                     self.doc_manager.rebuild()
-                    st.success("Index rebuilt.")
+                    st.success("Index rebuilt with clause metadata.")
+
+                try:
+                    secrets_key = st.secrets["openai"]["api_key"]
+                    if secrets_key and secrets_key != "your_openai_api_key_here":
+                        st.success("✅ Using Streamlit secrets")
+                    else:
+                        st.warning("⚠️ Streamlit secrets not configured")
+                except (KeyError, FileNotFoundError):
+                    if os.getenv("OPENAI_API_KEY"):
+                        st.success("✅ Using environment variable")
+                    else:
+                        st.error("❌ No API key found")
+
                 st.caption(f"Environment: {self.config_manager.get_environment()}")
                 st.caption(f"Debug mode: {self.config_manager.get_debug_mode()}")
                 st.divider()
 
-            # Logo
+            # sidebar visuals
             logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "logo.png")
             if os.path.exists(logo_path):
                 st.image(logo_path, use_container_width=True)
+            else:
+                st.warning("⚠️ Logo not found at the specified path.")
 
             st.markdown("<div style='margin-top:4px;'></div>", unsafe_allow_html=True)
             st.markdown(
@@ -262,25 +309,30 @@ class StreamlitApp:
             )
             st.markdown("<div class='ca-tagline'>Simplifying rentals, <br>one chat at a time.</div>", unsafe_allow_html=True)
             st.divider()
+        
+            #  Login / Logout
 
-            # Login / Logout
             with st.expander("🔐 Login / Logout", expanded=False):
+
                 email = st.text_input("Email", key="auth_email")
-                pwd = st.text_input("Password", type="password", key="auth_pwd")
+                pwd   = st.text_input("Password", type="password", key="auth_pwd")
+
                 c1, c2 = st.columns(2)
                 with c1:
-                    if st.button("Login", use_container_width=True):
-                        self.login(email, pwd)
+                    if st.button("Login", use_container_width=True, disabled=st.session_state["auth"]["logged_in"]):
+                        self._api_login(email, pwd)
                 with c2:
                     if st.button("Logout", use_container_width=True, disabled=not st.session_state["auth"]["logged_in"]):
-                        self.logout()
+                        self._api_logout()
+
                 auth = st.session_state["auth"]
                 if auth["logged_in"]:
-                    st.success(f"Logged in as: {auth.get('email')}")
+                    st.success(f"Logged in as: {auth.get('email') or 'user'}")
                 else:
                     st.caption("You’re not logged in.")
-
+            
             st.divider()
+
             # feedback/bug report
 
             st.markdown("<h3 style='text-align:center;'>🐞 Feedback/Bug Report</h3>", unsafe_allow_html=True)
@@ -329,7 +381,8 @@ class StreamlitApp:
                     time.sleep(0.35)
 
                 try:
-                    auth = st.session_state["auth"]
+                    auth = st.session_state.get("auth", {})
+                    set_current_auth(auth)
                     response = self.chatbot.chat(user_query)
                 except Exception as e:
                     response = "⚠️ Sorry, something went wrong. Please try again."
@@ -383,20 +436,21 @@ class StreamlitApp:
         self._render_sidebar()
 
         # tabs: Tenant (chat) | Agent (placeholder) 
-        # tenant_tab, agent_tab = st.tabs(["👤 Tenant", "🧑‍💼 Agent"])
+        tenant_tab, agent_tab = st.tabs(["👤 Tenant", "🧑‍💼 Agent"])
 
-        #with tenant_tab:
-        self._display_chat_history()
-        self._handle_user_input()
+        with tenant_tab:
+            self._display_chat_history()
+            self._handle_user_input()
 
-        #with agent_tab:
-        #    st.subheader("Agent (preview)")
-        #   st.caption("This is a read-only placeholder.")
-        #   st.markdown(
-        #       "- (coming soon)\n"
-        #       "- (coming soon)\n"
-        #       "- (coming soon)"
-        #   )
+        with agent_tab:
+            st.subheader("Agent (preview)")
+            st.caption("This is a read-only placeholder.")
+            st.markdown(
+                "- (coming soon)\n"
+                "- (coming soon)\n"
+                "- (coming soon)"
+            )
+        
 
 if __name__ == "__main__":
     load_dotenv()
