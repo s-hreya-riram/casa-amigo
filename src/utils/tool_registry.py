@@ -50,19 +50,33 @@ def build_tools(index: VectorStoreIndex, similarity_top_k: int = 5):
     )
 
     # ---------- tool 3: reminder / notification tool ----------------
+    from datetime import datetime
+    now = datetime.now()
+    iso = now.isoformat(timespec="seconds")
+    year = now.year
     reminder_tool = FunctionTool.from_defaults(
     fn=notification_workflow_tool,
     name="notification_workflow_tool",
     description=(
         "Create and manage reminders related to tenancy milestones. "
+        f"Current datetime (authoritative): {iso}. "
+        f"Always resolve relative dates using this datetime. "
+        f"Default year: {year}. Never use 2023 unless user said 2023."
         "Infer reminder_type_id based on the task: "
         "1=LOI, 2=Deposit, 3=Lease signing, 4=Rent (recurring), "
-        "5=Renewal notice, 6=Move out."
+        "5=Renewal notice, 6=Move out. "
+        "When creating a reminder, ALWAYS output `reminder_date` as a full ISO 8601 "
+        "datetime string: 'YYYY-MM-DDTHH:MM:SS'. "
+        "Use the user's current year by default (the present year), unless the user "
+        "explicitly specifies another year. "
+        "If the user says things like 'today', 'tomorrow', or gives only day+month "
+        "like '31 Oct at 12:20pm', you MUST expand it to a full ISO datetime in the "
+        "current year. "
+        "For monthly rent reminders (type 4), prefer `recurring_rule` instead of `reminder_date`."
     ),
-    fn_schema=ReminderInput, 
+    fn_schema=ReminderInput,
     return_direct=True,
 )
-
     # TODO: tool to calculate notice periods / last dates / pro rata rents
     date_calc_tool = FunctionTool.from_defaults(
         fn=date_calculator,

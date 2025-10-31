@@ -11,6 +11,9 @@ from typing import Optional
 import asyncio
 import math, requests
 from functools import lru_cache
+import re
+from bs4 import BeautifulSoup  # if you already use bs4 elsewhere; if not, you can make this optional
+
 
 
 # ------------------ Async workflow runner for sync contexts --------------
@@ -336,3 +339,50 @@ def pretty_lease_output(raw: str) -> str:
     text = re.sub(r"(<br>\s*)+$", "", text)
 
     return text
+
+def clean_pdf_fragments(raw: str) -> str:
+    if not raw:
+        return raw
+
+    # 1) strip any stray HTML tags your pipeline kept
+    try:
+        raw = BeautifulSoup(raw, "html.parser").get_text(separator=" ")
+    except Exception:
+        # if bs4 not available, just fall back
+        pass
+
+    # 2) fix cases where words get jammed together around clause letters
+    # e.g. "...to be borne by the Tenantandthe excess..." → insert space before capital
+    raw = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', raw)
+
+    # 3) collapse crazy whitespace
+    raw = re.sub(r'\s+', ' ', raw)
+
+    return raw.strip()
+
+
+
+#### ----- for reminder_tool.py: timezone conversion helper -------
+
+from datetime import datetime, timezone
+import zoneinfo  # built-in in 3.9+
+
+SG_TZ = zoneinfo.ZoneInfo("Asia/Singapore")
+
+def to_utc_iso(sgt_dt_str: str) -> str:
+    """
+    Take a naive datetime string the LLM gave us (assume it's SGT),
+    make it timezone-aware (Asia/Singapore), then convert to UTC,
+    and return ISO string for the API.
+    """
+    # 1) parse what the model gave (no tz)
+    dt_naive = datetime.fromisoformat(sgt_dt_str)  # e.g. "2025-10-31T12:33:00"
+
+    # 2) say "this is SGT"
+    dt_sgt = dt_naive.replace(tzinfo=SG_TZ)
+
+    # 3) convert to UTC
+    dt_utc = dt_sgt.astimezone(timezone.utc)
+
+    # 4) return ISO for API
+    return dt_utc.isoformat(timespec="seconds")

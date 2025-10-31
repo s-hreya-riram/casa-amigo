@@ -2,7 +2,7 @@ from typing import Optional, Literal
 from pydantic import BaseModel, Field
 import requests
 from utils.current_auth import get_current_auth
-
+from utils.utils import to_utc_iso
 # ----------- TODO: GET THIS FROM STREAMLIT AFTER WE ADD LOGIN PAGE  // for testing purposes use curl and get replace with your auth token and test ------
 API_BASE = "http://127.0.0.1:8000"
 #DEMO_USER_ID = "2dbe55f1-5332-461c-87f1-4f7dd76dbb8f"
@@ -62,7 +62,6 @@ def notification_workflow_tool(
     data.update(kwargs or {})
 
     runtime = get_current_auth()
-    print("hellooooooo Runtime auth from context:", runtime)
     user_id = runtime.get("user_id") 
     token = runtime.get("token") 
 
@@ -96,7 +95,7 @@ def notification_workflow_tool(
                 timeout=5,
             )
             if resp.status_code != 200:
-                return "I couldn't load your reminders from the server."
+                return "Are you logged in? I couldn't load your reminders from the server."
 
             body = resp.json()
             reminders = body.get("reminders", [])
@@ -122,7 +121,7 @@ def notification_workflow_tool(
 
         except Exception as e:
             #debug_log("tool_error", tool="notification_workflow_tool", error=str(e))
-            return "Sorry — I hit an error while fetching your reminders."
+            return "Sorry — are you logged in? I hit an error while fetching your reminders."
 
     # ------------------------------------------------------------------
     # SEND reminder now
@@ -204,6 +203,7 @@ def notification_workflow_tool(
             "You can give a specific date/time like '2025-11-02 at 6pm'."
         )
 
+    reminder_date = to_utc_iso(reminder_date)
     payload = {
     "user_id": user_id,
     "reminder_type_id": reminder_type_id,

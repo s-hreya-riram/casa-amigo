@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 from llama_index.core import VectorStoreIndex
 from llama_index.core.tools import FunctionTool
-from utils.utils import detect_clause_label_from_text, format_with_citations, pretty_lease_output
+from utils.utils import detect_clause_label_from_text, format_with_citations, pretty_lease_output, clean_pdf_fragments
 
 class LeaseQnAInput(BaseModel):
         input: str
@@ -44,6 +44,7 @@ def build_lease_qna_tool(index: VectorStoreIndex, debug_log):
                 )
 
             formatted = format_with_citations(resp)
+            formatted = clean_pdf_fragments(formatted) # remove weird PDF artifacts
             pretty = pretty_lease_output(formatted)
             return pretty
 
