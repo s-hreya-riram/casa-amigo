@@ -436,21 +436,21 @@ class StreamlitApp:
         self._render_sidebar()
 
         # tabs: Tenant (chat) | Agent (placeholder) 
-        tenant_tab, agent_tab = st.tabs(["👤 Tenant", "🧑‍💼 Agent"])
+        #tenant_tab, agent_tab = st.tabs(["👤 Tenant", "🧑‍💼 Agent"])
 
-        with tenant_tab:
-            self._display_chat_history()
-            self._handle_user_input()
+       # with tenant_tab:
+        self._display_chat_history()
+        self._handle_user_input()
 
-        with agent_tab:
-            st.subheader("Agent (preview)")
-            st.caption("This is a read-only placeholder.")
-            st.markdown(
-                "- (coming soon)\n"
-                "- (coming soon)\n"
-                "- (coming soon)"
-            )
-        
+        # with agent_tab:
+        #    st.subheader("Agent (preview)")
+        #    st.caption("This is a read-only placeholder.")
+        #    st.markdown(
+        #       "- (coming soon)\n"
+        #       "- (coming soon)\n"
+        #       "- (coming soon)"
+        #    )
+
 
 if __name__ == "__main__":
     load_dotenv()

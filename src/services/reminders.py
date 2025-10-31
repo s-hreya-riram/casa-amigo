@@ -13,15 +13,18 @@ from typing import List, Dict
 
 class ReminderService(BaseService):
     """Reminder management"""
-    
-    def list_reminders(self, user_id: UUID) -> List[Dict]:
+
+    def list_reminders(self, user_id: UUID, include_sent: bool = False) -> List[Dict]:
         """List all reminders for user"""
-        return self._get_multiple(
+        all_reminders = self._get_multiple(
             lambda: self.client.table("reminders")
                 .select("*")
                 .eq("user_id", str(user_id)),
             f"List reminders for user {user_id}"
         )
+        if not include_sent:
+            all_reminders = [r for r in all_reminders if r.get("status") != "sent"]
+        return all_reminders
     
     def create_reminder(self, reminder: RemindersInsert) -> Dict:
         """Create new reminder"""
