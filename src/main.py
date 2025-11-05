@@ -75,6 +75,12 @@ def _handle_service_error(e: Exception, status_code: int = 400):
     else:
         raise HTTPException(status_code=status_code, detail=str(e))
 
+# ==================== HEALTH CHECK ====================
+@app.get("/", tags=["Health Check"])
+async def root():
+    """Simple endpoint for health checks."""
+    return {"status": "ok", "service": "fastapi"}
+
 # ==================== AUTH ROUTES ====================
 @app.post("/auth/signup", tags=["Auth"])
 async def signup(email: str, name: str, password: str, user_type: str = "tenant"):
