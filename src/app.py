@@ -214,12 +214,28 @@ class StreamlitApp:
 
         # ========== AUTH HELPERS (LOCAL API) ==========
     def _api_base(self) -> str:
-        # Use env var if present; default to local FastAPI
+        """
+        Determines the base API URL, prioritizing Streamlit Secrets
+        for cloud deployment, then environment variables, then local default.
+        """
+        # 1. Try to get from Streamlit Secrets (for Streamlit Cloud deployment)
+        try:
+            # Assumes the key is [api] base_url in .streamlit/secrets.toml
+            # Note: st.secrets must be available (i.e., imported at top of file)
+            if "api" in st.secrets and "base_url" in st.secrets["api"]:
+                return st.secrets["api"]["base_url"].rstrip("/")
+        except Exception:
+            # Ignore errors if st.secrets is not available (e.g., local run)
+            pass
+
+        # 2. Fallback to Environment Variable (for local run or other deployments)
+        # Defaults to local FastAPI URL if API_BASE is not set
         return os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
 
     def _api_login(self, email: str, password: str):
 
-        API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
+        # Use the centralized helper method to get the correct URL
+        API_BASE = self._api_base() 
 
         email = (email or "").strip()
         password = (password or "").strip()
@@ -229,7 +245,7 @@ class StreamlitApp:
 
         try:
             r = requests.post(
-                f"{API_BASE}/auth/login",
+                f"{API_BASE}/auth/login", # Uses the determined API_BASE URL
                 params={"email": email, "password": password},
                 timeout=15,
             )
@@ -251,6 +267,7 @@ class StreamlitApp:
             st.error("Login response missing token.")
         except requests.HTTPError as e:
             try:
+                # Attempt to get the error detail from the response body
                 detail = r.json().get("detail")
             except Exception:
                 detail = str(e)
