@@ -3,13 +3,17 @@ from pydantic import BaseModel, Field
 import requests
 from utils.current_auth import get_current_auth
 from utils.utils import to_utc_iso
+from uuid import UUID
+import os
+
 # ----------- TODO: GET THIS FROM STREAMLIT AFTER WE ADD LOGIN PAGE  // for testing purposes use curl and get replace with your auth token and test ------
-API_BASE = "http://127.0.0.1:8000"
+#API_BASE = "http://127.0.0.1:8000"
 #DEMO_USER_ID = "2dbe55f1-5332-461c-87f1-4f7dd76dbb8f"
 #EMO_AUTH_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZGJlNTVmMS01MzMyLTQ2MWMtODdmMS00ZjdkZDc2ZGJiOGYiLCJleHAiOjE3NjE4MTQyODR9.mWrEgJUw3mp-k_uSbtHbV1tMCJlQvg2dUIrQnzwo34U"
 
 #user_id = runtime.get("user_id") or DEMO_USER_ID
 #token = runtime.get("token") or DEMO_AUTH_TOKEN
+API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
 
 class ReminderInput(BaseModel):
     action: Optional[Literal["create", "list", "send", "cancel"]] = Field(
@@ -31,8 +35,6 @@ class ReminderInput(BaseModel):
     user_id: Optional[str] = Field(
         "demo_user", description="Hardcoded until auth is added."
     )
-
-import requests
 
 def _auth_headers(token):
     # central place for auth header
@@ -63,6 +65,7 @@ def notification_workflow_tool(
 
     runtime = get_current_auth()
     user_id = runtime.get("user_id") 
+    user_id_uuid = UUID(user_id)
     token = runtime.get("token") 
 
     # pull fields
@@ -90,7 +93,7 @@ def notification_workflow_tool(
     if action == "list":
         try:
             resp = requests.get(
-                f"{API_BASE}/reminders/{user_id}",
+                f"{API_BASE}/reminders/{user_id_uuid}",
                 headers=_auth_headers(token),
                 timeout=5,
             )
@@ -133,7 +136,7 @@ def notification_workflow_tool(
         try:
             resp = requests.post(
                 f"{API_BASE}/reminders/{reminder_id}/send",
-                params={"user_id": user_id},
+                params={"user_id": user_id_uuid},
                 headers=_auth_headers(token),
                 timeout=5,
             )
@@ -166,7 +169,7 @@ def notification_workflow_tool(
             )
 
         payload = {
-            "user_id": user_id,
+            "user_id": user_id_uuid,
             "reminder_type_id": 4,
             "description": task_label,
             "status": "active",
@@ -205,7 +208,7 @@ def notification_workflow_tool(
 
     reminder_date = to_utc_iso(reminder_date)
     payload = {
-    "user_id": user_id,
+    "user_id": user_id_uuid,
     "reminder_type_id": reminder_type_id,
     "description": task_label,
     "status": "active",
@@ -213,6 +216,7 @@ def notification_workflow_tool(
 }
 
     try:
+        print("Creating reminder with payload:", payload)
         resp = requests.post(
             f"{API_BASE}/reminders",
             headers=_auth_headers(token),
