@@ -261,6 +261,7 @@ class StreamlitApp:
                     "email": data.get("email", email),
                     "logged_in": True,
                 }
+                set_current_auth(st.session_state["auth"])
                 st.toast("Logged in.")
                 return True
 

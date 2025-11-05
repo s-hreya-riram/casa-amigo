@@ -74,6 +74,11 @@ def notification_workflow_tool(
     user_id_uuid = UUID(user_id)
     token = runtime.get("token") 
 
+    if not user_id or not token:
+        # This will show up in the Streamlit Cloud logs
+        print(f"DEBUG: Auth missing! User_ID: {user_id}, Token: {token}")
+        return "Please log in first before attempting to list reminders."
+
     # pull fields
     action = (data.get("action") or "create").lower()
     reminder_type_id = data.get("reminder_type_id")
