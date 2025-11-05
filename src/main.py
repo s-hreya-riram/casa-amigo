@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer
 from uuid import UUID
 from typing import Optional
 from datetime import timedelta
+from fastapi.middleware.cors import CORSMiddleware
 
 # Import services
 from services import AuthService, UserService, TenantProfileService, ReminderService, ConversationService, PropertyService, TenancyService
@@ -28,6 +29,18 @@ app = FastAPI(
     title="FAST APIs for Casa Amigo",
     description="Backend API for Casa Amigo rental assistant",
     version="1.0.0"
+)
+
+# Add CORS - CRITICAL for Streamlit Cloud
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://*.streamlit.app",  # Streamlit Cloud domains
+        "http://localhost:8501",     # Local Streamlit development
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Initialize services
@@ -360,4 +373,6 @@ async def create_tenancy_agreement(agreement: TenancyAgreementsInsert):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
