@@ -20,6 +20,6 @@ EXPOSE 8000
 # By setting PYTHONPATH=., we tell Python to look for modules starting in /app (the WORKDIR).
 # The CMD then correctly runs the app using the full module path: src.main:app
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=.
+ENV PYTHONPATH=/app/src
 
 CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
