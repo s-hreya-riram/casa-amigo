@@ -28,28 +28,44 @@ class SupabaseClient:
         self._init_client()
 
     def _init_client(self):
-        """Initialize Supabase client using Streamlit secrets or .env fallback."""
+        """Initialize Supabase client using environment variables as primary source."""
 
+        # 1. Load .env file (good for local testing)
         load_dotenv()
-        url = st.secrets["supabase"]["url"] or os.getenv("SUPABASE_URL")
-        key = st.secrets["supabase"]["anon_key"] or os.getenv("SUPABASE_ANON_KEY")
+        
+        url = None
+        key = None
 
+        # 2. Try to get secrets from Streamlit (if the code runs in a Streamlit context)
+        # We wrap this in a try block because accessing st.secrets itself can throw the error
+        try:
+            # We must check if 'st.secrets' is available and has the 'supabase' key
+            if "supabase" in st.secrets:
+                url = st.secrets["supabase"].get("url")
+                key = st.secrets["supabase"].get("anon_key")
+        except:
+            # If st.secrets isn't initialized (which is the case in FastAPI), ignore this block
+            pass 
+
+        # 3. Fallback to Environment Variables (This is your primary source on Render)
+        url = url or os.getenv("SUPABASE_URL")
+        key = key or os.getenv("SUPABASE_ANON_KEY")
 
         # --- Validate credentials ---
         if not url or not key:
             raise SupabaseCredentialsError("Supabase URL or key is missing or invalid.")
-
+        
         # --- Initialize client ---
         try:
             self.client = create_client(url, key)
             self._test_connection()
+        # ... (rest of your error handling remains the same)
         except (TypeError, ValueError) as e:
             raise SupabaseCredentialsError(f"Supabase URL or key invalid: {e}") from e
         except RequestException as e:
             raise SupabaseConnectionError(f"Failed to connect to Supabase service: {e}") from e
         except Exception as e:
             raise SupabaseConnectionError(f"Unexpected error initializing Supabase client: {e}") from e
-
     def _test_connection(self):
         """Optional simple test query to verify connectivity."""
         if not self.client:

@@ -5,15 +5,15 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
-import streamlit as st
 
-# Get SECRET_KEY from environment - fail if not set
-SECRET_KEY = os.getenv("SECRET_KEY") or st.secrets["jwt"]["secret_key"]
+# 1. Prioritize os.getenv
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+# 2. Check if the key was found, and raise an error if not
 if not SECRET_KEY:
     raise ValueError(
         "SECRET_KEY environment variable not set. "
-        "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(32))\" "
-        "Then add to .env file."
+        "Ensure it is configured in your Render service environment variables."
     )
 
 ALGORITHM = "HS256"
