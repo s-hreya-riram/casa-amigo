@@ -38,7 +38,6 @@ ALLOWED_ORIGINS = [
     "http://localhost:8501",
     "https://*.awsapprunner.com"
 ]
-).split(",")
 
 app.add_middleware(
     CORSMiddleware,
