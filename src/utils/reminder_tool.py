@@ -5,15 +5,21 @@ from utils.current_auth import get_current_auth
 from utils.utils import to_utc_iso
 from uuid import UUID
 import os
+import streamlit as st
 
-# ----------- TODO: GET THIS FROM STREAMLIT AFTER WE ADD LOGIN PAGE  // for testing purposes use curl and get replace with your auth token and test ------
-#API_BASE = "http://127.0.0.1:8000"
-#DEMO_USER_ID = "2dbe55f1-5332-461c-87f1-4f7dd76dbb8f"
-#EMO_AUTH_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZGJlNTVmMS01MzMyLTQ2MWMtODdmMS00ZjdkZDc2ZGJiOGYiLCJleHAiOjE3NjE4MTQyODR9.mWrEgJUw3mp-k_uSbtHbV1tMCJlQvg2dUIrQnzwo34U"
+# TODO move this to a shared util 
+def _get_api_base() -> str:
+    # 1. Try Streamlit Secrets first (for cloud deployment)
+    try:
+        if "api" in st.secrets and "base_url" in st.secrets["api"]:
+            return st.secrets["api"]["base_url"].rstrip("/")
+    except Exception:
+        pass # Ignore failure if not in a Streamlit context
 
-#user_id = runtime.get("user_id") or DEMO_USER_ID
-#token = runtime.get("token") or DEMO_AUTH_TOKEN
-API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
+    # 2. Fallback to ENV var or local
+    return os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
+
+API_BASE = _get_api_base()
 
 class ReminderInput(BaseModel):
     action: Optional[Literal["create", "list", "send", "cancel"]] = Field(
@@ -92,6 +98,7 @@ def notification_workflow_tool(
     # ------------------------------------------------------------------
     if action == "list":
         try:
+            st.log("Fetching reminders for user:", user_id_uuid)
             resp = requests.get(
                 f"{API_BASE}/reminders/{user_id_uuid}",
                 headers=_auth_headers(token),
