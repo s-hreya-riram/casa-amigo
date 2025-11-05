@@ -4,6 +4,7 @@ from uuid import UUID
 from typing import Optional
 from datetime import timedelta
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 # Import services
 from services import AuthService, UserService, TenantProfileService, ReminderService, ConversationService, PropertyService, TenancyService
@@ -31,13 +32,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS - CRITICAL for Streamlit Cloud
+# Get allowed origins from environment variable or use defaults
+ALLOWED_ORIGINS = [
+    "https://*.streamlit.app",
+    "http://localhost:8501",
+    "https://*.awsapprunner.com"
+]
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://*.streamlit.app",  # Streamlit Cloud domains
-        "http://localhost:8501",     # Local Streamlit development
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
