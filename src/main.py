@@ -36,7 +36,8 @@ app = FastAPI(
 ALLOWED_ORIGINS = [
     "https://*.streamlit.app",
     "http://localhost:8501",
-    "https://*.awsapprunner.com"
+    "https://*.onrender.com",  # Add this for Render!
+    "*"  # Or just use this for simplicity in a school project
 ]
 
 app.add_middleware(
