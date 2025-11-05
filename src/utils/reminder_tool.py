@@ -19,8 +19,6 @@ def _get_api_base() -> str:
     # 2. Fallback to ENV var or local
     return os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
 
-API_BASE = _get_api_base()
-
 class ReminderInput(BaseModel):
     action: Optional[Literal["create", "list", "send", "cancel"]] = Field(
         "create", description="Action to perform on reminders."
@@ -59,6 +57,7 @@ def notification_workflow_tool(
 
     Safe: never raises, always returns a friendly string.
     """
+    API_BASE = _get_api_base() 
 
     # ----- normalize input -----
     if isinstance(input, ReminderInput):
