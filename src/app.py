@@ -233,19 +233,17 @@ class StreamlitApp:
         return os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
 
     def _api_login(self, email: str, password: str):
-
-        # Use the centralized helper method to get the correct URL
-        API_BASE = self._api_base() 
-
+        API_BASE = self._api_base()
         email = (email or "").strip()
         password = (password or "").strip()
+        
         if not email or not password:
             st.error("Email and password are required.")
             return False
 
         try:
             r = requests.post(
-                f"{API_BASE}/auth/login", # Uses the determined API_BASE URL
+                f"{API_BASE}/auth/login",
                 params={"email": email, "password": password},
                 timeout=15,
             )
@@ -254,21 +252,27 @@ class StreamlitApp:
 
             token = data.get("access_token") or data.get("token")
             user_id = data.get("user_id")
+            
             if token:
-                st.session_state["auth"] = {
+                auth_data = {
                     "token": token,
-                    "user_id": user_id,
+                    "user_id": str(user_id),
                     "email": data.get("email", email),
                     "logged_in": True,
                 }
-                set_current_auth(st.session_state["auth"])
+                
+                # Store in session_state (main source of truth)
+                st.session_state["auth"] = auth_data
+                
+                # ✅ Also store in _current_auth (for tools to read)
+                set_current_auth(auth_data)
+                
                 st.toast("Logged in.")
                 return True
 
             st.error("Login response missing token.")
         except requests.HTTPError as e:
             try:
-                # Attempt to get the error detail from the response body
                 detail = r.json().get("detail")
             except Exception:
                 detail = str(e)
@@ -349,6 +353,11 @@ class StreamlitApp:
                 else:
                     st.caption("You’re not logged in.")
             
+            # In _render_sidebar, add after the login expander:
+            if st.session_state.get("auth", {}).get("logged_in"):
+                st.caption(f"🔐 Auth persisted: {st.session_state['auth'].get('email')}")
+                st.caption(f"User ID: {st.session_state['auth'].get('user_id')}")
+            
             st.divider()
 
             # feedback/bug report
@@ -390,7 +399,7 @@ class StreamlitApp:
             with st.chat_message("user", avatar=self.user_icon):
                 st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
 
-            # assistant thinking + reply via CasaAmigoAgent.chat()
+            # assistant thinking + reply
             with st.chat_message("assistant", avatar=self.thinking_icon):
                 placeholder = st.empty()
                 for _ in range(3):
@@ -399,12 +408,17 @@ class StreamlitApp:
                     time.sleep(0.35)
 
                 try:
+                    # Get auth from session_state
                     auth = st.session_state.get("auth", {})
-                    set_current_auth(auth)
-                    response = self.chatbot.chat(user_query)
+                    print(f"[APP] Passing auth to agent: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}")
+                    
+                    # ✅ Pass auth explicitly to the agent
+                    response = self.chatbot.chat(user_query, auth=auth)
                 except Exception as e:
                     response = "⚠️ Sorry, something went wrong. Please try again."
                     st.toast(f"Backend error: {e}")
+                    import traceback
+                    traceback.print_exc()
 
                 placeholder.markdown(f"<div class='ca-bubble ca-assist'>{response}</div>", unsafe_allow_html=True)
 

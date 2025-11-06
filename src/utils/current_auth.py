@@ -1,28 +1,26 @@
+# utils/current_auth.py
 import streamlit as st
-from typing import Dict, Any
 
-# NOTE: The global _current_auth dictionary is removed.
-
-def set_current_auth(auth: Dict[str, Any] | None):
+def set_current_auth(auth: dict | None):
     """
-    Sets the current authentication data directly into Streamlit's session state.
-    This links the Streamlit app's state (st.session_state['auth']) 
-    to the state used by your tools (via get_current_auth).
+    Store auth in Streamlit's session_state (persists across reruns).
     """
     if auth is None:
         auth = {"token": None, "user_id": None, "email": None, "logged_in": False}
-        
-    # Always ensure the 'auth' key exists in session_state
-    st.session_state["auth"] = dict(auth)
+    
+    # Store in session_state so it survives reruns
+    st.session_state["_current_auth"] = dict(auth)
+    print(f"[AUTH] Set auth in session_state: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}")
 
-def get_current_auth() -> Dict[str, Any]:
+def get_current_auth() -> dict:
     """
-    Retrieves the current authentication data from Streamlit's session state.
+    Retrieve auth from Streamlit's session_state.
     """
-    # Safely return the 'auth' dict, or an empty/default dict if not found.
-    return dict(st.session_state.get("auth", {
-        "token": None, 
-        "user_id": None, 
-        "email": None, 
+    auth = st.session_state.get("_current_auth", {
+        "token": None,
+        "user_id": None,
+        "email": None,
         "logged_in": False
-    }))
+    })
+    print(f"[AUTH] Get auth from session_state: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}")
+    return dict(auth)

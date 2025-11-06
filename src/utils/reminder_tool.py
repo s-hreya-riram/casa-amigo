@@ -6,6 +6,7 @@ from utils.utils import to_utc_iso
 from uuid import UUID
 import os
 import streamlit as st
+import threading
 
 # TODO move this to a shared util 
 def _get_api_base() -> str:
@@ -54,12 +55,13 @@ def notification_workflow_tool(
     """
     Create / list / send (and stub cancel) reminders by
     talking to the running FastAPI backend.
-
-    Safe: never raises, always returns a friendly string.
     """
-    API_BASE = _get_api_base() 
+    print(f"[REMINDER] RAW INPUT: input={input}, type={type(input)}")
+    print(f"[REMINDER] KWARGS: {kwargs}")
+    
+    API_BASE = _get_api_base()
 
-    # ----- normalize input -----
+    # Normalize input
     if isinstance(input, ReminderInput):
         data = input.dict(exclude_none=True)
     elif isinstance(input, dict):
@@ -67,19 +69,23 @@ def notification_workflow_tool(
     else:
         data = {}
     data.update(kwargs or {})
+    
+    print(f"[REMINDER] NORMALIZED DATA: {data}")
 
-    runtime = get_current_auth()
-    user_id = runtime.get("user_id") 
-    user_id_uuid = UUID(user_id)
-    token = runtime.get("token") 
+    # Get auth from injected kwargs
+    auth = data.get('_injected_auth') or kwargs.get('_injected_auth', {})
+    
+    user_id = auth.get("user_id")
+    token = auth.get("token")
+    print(f"[REMINDER] Auth received: user_id={user_id}, has_token={bool(token)}")
 
     if not user_id or not token:
-        # This will show up in the Streamlit Cloud logs
-        print(f"DEBUG: Auth missing! User_ID: {user_id}, Token: {token}")
+        print(f"[REMINDER] AUTH MISSING! User_ID: {user_id}, Token: {token}")
         return "Please log in first before attempting to list reminders."
 
-    # pull fields
-    action = (data.get("action") or "create").lower()
+    # ✅ Extract action (with default)
+    action = (data.get("action") or "list").lower()  # Default to "list" if not specified
+    print(f"[REMINDER] ACTION: {action}")
     reminder_type_id = data.get("reminder_type_id")
     description = data.get("description")
     reminder_date = data.get("reminder_date")
@@ -102,12 +108,14 @@ def notification_workflow_tool(
     # ------------------------------------------------------------------
     if action == "list":
         try:
-            st.log("Fetching reminders for user:", user_id_uuid)
+            print(f"[REMINDER] Listing reminders for user: {user_id}")
             resp = requests.get(
-                f"{API_BASE}/reminders/{user_id_uuid}",
+                f"{API_BASE}/reminders/{user_id}",
                 headers=_auth_headers(token),
                 timeout=5,
             )
+            print(f"[REMINDER] Response status: {resp.status_code}")
+            print(f"[REMINDER] Response body: {resp.text[:500]}")
             if resp.status_code != 200:
                 return "Are you logged in? I couldn't load your reminders from the server."
 
@@ -135,6 +143,9 @@ def notification_workflow_tool(
 
         except Exception as e:
             #debug_log("tool_error", tool="notification_workflow_tool", error=str(e))
+            print(f"[REMINDER] EXCEPTION in list: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             return "Sorry — are you logged in? I hit an error while fetching your reminders."
 
     # ------------------------------------------------------------------
@@ -147,7 +158,7 @@ def notification_workflow_tool(
         try:
             resp = requests.post(
                 f"{API_BASE}/reminders/{reminder_id}/send",
-                params={"user_id": user_id_uuid},
+                params={"user_id": user_id},
                 headers=_auth_headers(token),
                 timeout=5,
             )
@@ -180,7 +191,7 @@ def notification_workflow_tool(
             )
 
         payload = {
-            "user_id": user_id_uuid,
+            "user_id": user_id,
             "reminder_type_id": 4,
             "description": task_label,
             "status": "active",
@@ -219,7 +230,7 @@ def notification_workflow_tool(
 
     reminder_date = to_utc_iso(reminder_date)
     payload = {
-    "user_id": user_id_uuid,
+    "user_id": user_id,
     "reminder_type_id": reminder_type_id,
     "description": task_label,
     "status": "active",

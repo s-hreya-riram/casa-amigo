@@ -3,6 +3,8 @@ from llama_index.core.tools import FunctionTool
 from utils.reminder_tool import notification_workflow_tool, ReminderInput
 from utils.neighbourhood_research_tool import neighborhood_researcher
 from utils.lease_tool import build_lease_qna_tool, LeaseQnAInput
+from datetime import datetime
+import threading
 
 # ---- in-memory debug list if we want to show models debug logs --------------------------
 _DEBUG_LOG: list[dict] = []
@@ -54,29 +56,43 @@ def build_tools(index: VectorStoreIndex, similarity_top_k: int = 5):
     now = datetime.now()
     iso = now.isoformat(timespec="seconds")
     year = now.year
+    def reminder_tool_wrapper(input: ReminderInput | dict | None = None, **kwargs):
+        """Wrapper that injects auth from global store."""
+        from utils.auth_store import get_auth_store
+        
+        # ✅ Get auth from global store (works in any thread)
+        auth = get_auth_store().get()
+        print(f"[TOOL_WRAPPER] Auth from store: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}, thread={threading.current_thread().name}")
+        
+        # Inject into kwargs
+        kwargs['_injected_auth'] = auth
+        
+        return notification_workflow_tool(input, **kwargs)
+
     reminder_tool = FunctionTool.from_defaults(
-    fn=notification_workflow_tool,
-    name="notification_workflow_tool",
-    description=(
-        "Create and manage reminders related to tenancy milestones. "
-        f"Current datetime (authoritative): {iso}. "
-        f"Always resolve relative dates using this datetime. "
-        f"Default year: {year}. Never use 2023 unless user said 2023."
-        "Infer reminder_type_id based on the task: "
-        "1=LOI, 2=Deposit, 3=Lease signing, 4=Rent (recurring), "
-        "5=Renewal notice, 6=Move out. "
-        "When creating a reminder, ALWAYS output `reminder_date` as a full ISO 8601 "
-        "datetime string: 'YYYY-MM-DDTHH:MM:SS'. "
-        "Use the user's current year by default (the present year), unless the user "
-        "explicitly specifies another year. "
-        "If the user says things like 'today', 'tomorrow', or gives only day+month "
-        "like '31 Oct at 12:20pm', you MUST expand it to a full ISO datetime in the "
-        "current year. "
-        "For monthly rent reminders (type 4), prefer `recurring_rule` instead of `reminder_date`."
-    ),
-    fn_schema=ReminderInput,
-    return_direct=True,
-)
+        fn=reminder_tool_wrapper,
+        name="notification_workflow_tool",
+            description=(
+            "Create and manage reminders related to tenancy milestones. "
+            f"Current datetime (authoritative): {iso}. "
+            f"Always resolve relative dates using this datetime. "
+            f"Default year: {year}. Never use 2023 unless user said 2023."
+            "Infer reminder_type_id based on the task: "
+            "1=LOI, 2=Deposit, 3=Lease signing, 4=Rent (recurring), "
+            "5=Renewal notice, 6=Move out. "
+            "When creating a reminder, ALWAYS output `reminder_date` as a full ISO 8601 "
+            "datetime string: 'YYYY-MM-DDTHH:MM:SS'. "
+            "Use the user's current year by default (the present year), unless the user "
+            "explicitly specifies another year. "
+            "If the user says things like 'today', 'tomorrow', or gives only day+month "
+            "like '31 Oct at 12:20pm', you MUST expand it to a full ISO datetime in the "
+            "current year. "
+            "For monthly rent reminders (type 4), prefer `recurring_rule` instead of `reminder_date`."
+        ),
+        fn_schema=ReminderInput,
+        return_direct=True,
+    )
+
     # TODO: tool to calculate notice periods / last dates / pro rata rents
     date_calc_tool = FunctionTool.from_defaults(
         fn=date_calculator,
@@ -99,4 +115,4 @@ def build_tools(index: VectorStoreIndex, similarity_top_k: int = 5):
         description=("Builds a user persona and scores candidate listings with an audit trail."),
     )
 
-    return [lease_qna, date_calc_tool, neighborhood_tool, fit_tool, reminder_tool, persona_tool]
+    return [lease_qna, neighborhood_tool, reminder_tool]

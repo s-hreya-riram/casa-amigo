@@ -92,13 +92,21 @@ class CasaAmigoAgent:
 
     # ------------------------------ Public API -------------------------------
 
-    def chat(self, message: str) -> str:
+    def chat(self, message: str, auth: dict | None = None) -> str:
         """
         Run one chat turn through the agent and return plain text for the UI.
-        Also records a short list of tool calls (name + args) for debugging.
+        
+        Args:
+            message: User's message
+            auth: Authentication dict (must be passed explicitly for async contexts)
         """
-
-        # Run the async workflow with a robust sync helper
+        # ✅ Store auth in global store BEFORE running async workflow
+        if auth:
+            from utils.auth_store import get_auth_store
+            print(f"[AGENT] Storing auth globally: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}")
+            get_auth_store().set(auth)
+        
+        # Run the async workflow
         out = run_sync(self.workflow, message, self.memory, max_iterations=6)
 
         # Captures tool calls for debug panel 
