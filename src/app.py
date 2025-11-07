@@ -10,6 +10,7 @@ from config import ConfigManager
 from core import DocumentIndexManager, CasaAmigoAgent
 
 from utils.current_auth import set_current_auth
+from utils.moderation import moderate_content, get_moderation_message
 import requests
 
 class StreamlitApp:
@@ -394,12 +395,53 @@ class StreamlitApp:
 
     def _handle_user_input(self):
         if user_query := st.chat_input("Type your message..."):
+            print(f"[APP] Moderating user input: {user_query[:50]}...")
+            moderation_result = moderate_content(user_query, self.config_manager.api_key)
+            
+            if not moderation_result["is_safe"]:
+                # Content was flagged - show warning and don't process
+                flagged_cats = moderation_result["flagged_categories"]
+                print(f"[APP] Content flagged: {flagged_cats}")
+                
+                warning_msg = get_moderation_message(flagged_cats)
+                
+                # Show user message (so they see what they typed)
+                st.session_state["messages"].append({"role": "user", "content": user_query})
+                with st.chat_message("user", avatar=self.user_icon):
+                    st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
+                
+                # Show moderation warning
+                warning_response = (
+                    f"⚠️ {warning_msg}\n\n"
+                    "Please rephrase your message to comply with our community guidelines. "
+                    "Casa Amigo is here to help with rental-related questions in a respectful manner."
+                )
+                
+                with st.chat_message("assistant", avatar=self.idle_icon):
+                    st.markdown(f'<div class="ca-bubble ca-assist">{warning_response}</div>', unsafe_allow_html=True)
+                
+                st.session_state["messages"].append({"role": "assistant", "content": warning_response})
+                
+                # Log the incident (for your records/demo)
+                if "moderation_flags" not in st.session_state:
+                    st.session_state["moderation_flags"] = []
+                st.session_state["moderation_flags"].append({
+                    "timestamp": time.time(),
+                    "query": user_query,
+                    "categories": flagged_cats
+                })
+                
+                return  # Stop processing
+            
+            # ✅ CONTENT IS SAFE - Continue with normal flow
+            print(f"[APP] Content passed moderation")
+            
             # user message
             st.session_state["messages"].append({"role": "user", "content": user_query})
             with st.chat_message("user", avatar=self.user_icon):
                 st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
 
-            # assistant thinking + reply
+            # assistant thinking + reply via CasaAmigoAgent.chat()
             with st.chat_message("assistant", avatar=self.thinking_icon):
                 placeholder = st.empty()
                 for _ in range(3):
@@ -408,23 +450,42 @@ class StreamlitApp:
                     time.sleep(0.35)
 
                 try:
-                    # Get auth from session_state
                     auth = st.session_state.get("auth", {})
-                    print(f"[APP] Passing auth to agent: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}")
+                    print(f"[APP] Auth state: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}, logged_in={auth.get('logged_in')}")
+                    set_current_auth(auth)
+                    response = self.chatbot.chat(user_query)
                     
-                    # ✅ Pass auth explicitly to the agent
-                    response = self.chatbot.chat(user_query, auth=auth)
+                    # ✅ STEP 2: MODERATE ASSISTANT OUTPUT (OPTIONAL BUT RECOMMENDED)
+                    print(f"[APP] Moderating assistant response")
+                    response_mod = moderate_content(response, self.config_manager.api_key)
+                    
+                    if not response_mod["is_safe"]:
+                        print(f"[APP] WARNING: Assistant response was flagged: {response_mod['flagged_categories']}")
+                        # Log this - your model shouldn't generate unsafe content
+                        response = (
+                            "I apologize, but I need to rephrase my response. "
+                            "Let me try again with a different approach."
+                        )
+                        # In production, you might want to retry the LLM call with stronger instructions
+                    
                 except Exception as e:
                     response = "⚠️ Sorry, something went wrong. Please try again."
                     st.toast(f"Backend error: {e}")
-                    import traceback
-                    traceback.print_exc()
 
                 placeholder.markdown(f"<div class='ca-bubble ca-assist'>{response}</div>", unsafe_allow_html=True)
 
                 # debug expander (per-turn)
-                with st.sidebar.expander("🔎 Debug (last turn)", expanded=True):
-                    # Tool registry logs
+                with st.sidebar.expander("🔎 Debug (last turn)", expanded=False):
+                    # Show moderation results
+                    st.write("**Input Moderation:**")
+                    if moderation_result.get("error"):
+                        st.warning(f"Moderation error: {moderation_result['error']}")
+                    else:
+                        st.write(f"✅ Safe: {moderation_result['is_safe']}")
+                        if moderation_result['flagged_categories']:
+                            st.write(f"⚠️ Flagged: {', '.join(moderation_result['flagged_categories'])}")
+                    
+                    # ... rest of your existing debug code ...
                     logs = consume_debug_log()
                     if not logs:
                         st.caption("No tool logs yet.")
@@ -443,7 +504,6 @@ class StreamlitApp:
                             elif row["event"] == "tool_error":
                                 st.error(f"{row['tool']} error: {row['error']}")
 
-                    # agent tool calls (if available)
                     calls = self.chatbot.get_tool_calls() if hasattr(self.chatbot, "get_tool_calls") else []
                     if calls:
                         st.markdown("---")
