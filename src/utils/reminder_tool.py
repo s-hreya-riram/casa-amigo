@@ -3,10 +3,21 @@ from pydantic import BaseModel, Field
 import requests
 from utils.current_auth import get_current_auth
 from utils.utils import to_utc_iso
-from uuid import UUID
 import os
 import streamlit as st
 import threading
+from pydantic import BaseModel, UUID4
+from uuid import UUID, uuid4  # Add UUID import
+
+# Change the helper model to use UUID instead of UUID4
+class ReminderPayload(BaseModel):
+    user_id: UUID  # Changed from UUID4 to UUID - accepts any UUID version
+    reminder_type_id: int
+    description: str
+    status: str
+    reminder_date: str | None = None
+    reminder_id: UUID  # Changed from UUID4 to UUID
+    recurring_rule: str | None = None
 
 # TODO move this to a shared util 
 def _get_api_base() -> str:
@@ -182,7 +193,7 @@ def notification_workflow_tool(
     # CREATE reminder
     # ------------------------------------------------------------------
 
-    # rent (type 4) → recurring monthly
+    # For rent reminders (recurring):
     if reminder_type_id == 4:
         if not recurring_rule:
             return (
@@ -190,15 +201,18 @@ def notification_workflow_tool(
                 "For example: '1st at 9am'."
             )
 
-        payload = {
-            "user_id": user_id,
-            "reminder_type_id": 4,
-            "description": task_label,
-            "status": "active",
-            "recurring_rule": recurring_rule,
-        }
-
         try:
+            payload_obj = ReminderPayload(
+                user_id=user_id,
+                reminder_type_id=4,
+                description=task_label,
+                status="active",
+                recurring_rule=recurring_rule,
+                reminder_id=uuid4()
+            )
+            
+            payload = payload_obj.model_dump(mode='json', exclude_none=True)
+            
             resp = requests.post(
                 f"{API_BASE}/reminders",
                 headers=_auth_headers(token),
@@ -215,13 +229,15 @@ def notification_workflow_tool(
                 f"({recurring_rule}). I've saved it as reminder {rid}."
             )
         except Exception as e:
-            #debug_log("tool_error", tool="notification_workflow_tool", error=str(e))
+            print(f"[REMINDER] EXCEPTION in rent reminder: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             return (
                 "I tried to save that rent reminder, but I hit a network error. "
                 "I'll still remember it for this chat, but it may not show up in your list yet."
             )
 
-    # non-rent → one-off date/time
+    # For non-rent reminders:
     if not reminder_date:
         return (
             f"Sure. When should I remind you to {task_label}? "
@@ -229,26 +245,36 @@ def notification_workflow_tool(
         )
 
     reminder_date = to_utc_iso(reminder_date)
-    payload = {
-    "user_id": user_id,
-    "reminder_type_id": reminder_type_id,
-    "description": task_label,
-    "status": "active",
-    "reminder_date": reminder_date,
-}
+    print(f"[REMINDER] Converted reminder_date to UTC ISO: {reminder_date}")
 
     try:
+        # Create Pydantic model instance for validation
+        payload_obj = ReminderPayload(
+            user_id=user_id,
+            reminder_type_id=reminder_type_id,
+            description=task_label,
+            status="active",
+            reminder_date=reminder_date,
+            reminder_id=uuid4()
+        )
+        
+        # Convert to JSON-serializable dict
+        payload = payload_obj.model_dump(mode='json')
         print("Creating reminder with payload:", payload)
+
         resp = requests.post(
             f"{API_BASE}/reminders",
             headers=_auth_headers(token),
             json=payload,
             timeout=5,
         )
+        print(f"[REMINDER] Create response status: {resp.status_code}")
+        print(f"[REMINDER] Create response body: {resp.text[:500]}")
         if resp.status_code not in (200, 201):
             return "I couldn't save that reminder to the server."
 
         created = resp.json()
+        print(f"[REMINDER] Create response body: {created}")
         rid = created.get("reminder_id") or created.get("id") or "(no id)"
 
         return (
@@ -257,7 +283,9 @@ def notification_workflow_tool(
         )
 
     except Exception as e:
-        #debug_log("tool_error", tool="notification_workflow_tool", error=str(e))
+        print(f"[REMINDER] EXCEPTION in create: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         return (
             "I tried to save that reminder but hit a network error. "
             "I'll still remember it for this chat, but it may not show up in your list yet."

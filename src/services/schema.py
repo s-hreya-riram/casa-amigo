@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Any, Literal
 
 from pydantic import UUID4, BaseModel, Field, Json
+from uuid import UUID
 
 # CUSTOM CLASSES
 # Note: These are custom model classes for defining common features among
@@ -464,7 +465,7 @@ class RemindersInsert(CustomModelInsert):
     """Reminders Insert Schema."""
 
     # Primary Keys
-    reminder_id: UUID4 | None = Field(default=None)  # has default value
+    reminder_id: UUID | None = Field(default=None)  # has default value
 
     # Field properties:
     # created_at: nullable, has default value
@@ -482,7 +483,7 @@ class RemindersInsert(CustomModelInsert):
 
     # Required fields
     reminder_type_id: int
-    user_id: UUID4
+    user_id: UUID
 
     # Optional fields
     created_at: datetime.datetime | None = Field(default=None)
