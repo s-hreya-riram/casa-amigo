@@ -4,7 +4,7 @@ import datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import UUID4, BaseModel, Field, Json
+from pydantic import UUID, BaseModel, Field, Json
 from uuid import UUID
 
 # CUSTOM CLASSES
@@ -52,22 +52,22 @@ class ConversationsBaseSchema(CustomModel):
     """Conversations Base Schema."""
 
     # Primary Keys
-    conversation_id: UUID4
+    conversation_id: UUID
 
     # Columns
     created_at: datetime.datetime
     updated_at: datetime.datetime
-    user_id: UUID4
+    user_id: UUID
 
 
 class MessagesBaseSchema(CustomModel):
     """Messages Base Schema."""
 
     # Primary Keys
-    message_id: UUID4
+    message_id: UUID
 
     # Columns
-    conversation_id: UUID4 | None = Field(default=None)
+    conversation_id: UUID | None = Field(default=None)
     created_at: datetime.datetime
     message: str
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
@@ -78,7 +78,7 @@ class PropertiesBaseSchema(CustomModel):
 	"""Properties Base Schema."""
 
 	# Primary Keys
-	property_id: UUID4
+	property_id: UUID
 
 	# Columns
 	address: str | None = Field(default=None)
@@ -114,7 +114,7 @@ class PropertyAgentBaseSchema(CustomModel):
     """PropertyAgent Base Schema."""
 
     # Primary Keys
-    id: UUID4
+    id: UUID
 
     # Columns
     company_name: str | None = Field(default=None)
@@ -125,7 +125,7 @@ class PropertyPreferencesBaseSchema(CustomModel):
     """PropertyPreferences Base Schema."""
 
     # Primary Keys
-    preference_id: UUID4
+    preference_id: UUID
 
     # Columns
     created_at: datetime.datetime
@@ -143,21 +143,21 @@ class PropertyPreferencesBaseSchema(CustomModel):
     reference_image_urls: list[str] | None = Field(default=None)
     required_amenities: list[str] | None = Field(default=None)
     updated_at: datetime.datetime
-    user_id: UUID4
+    user_id: UUID
 
 
 class ReminderNotificationsBaseSchema(CustomModel):
     """ReminderNotifications Base Schema."""
 
     # Primary Keys
-    notification_id: UUID4
+    notification_id: UUID
 
     # Columns
     delivery_status: str
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
-    reminder_id: UUID4
+    reminder_id: UUID
     sent_at: datetime.datetime
-    user_id: UUID4
+    user_id: UUID
 
 
 class ReminderTypesBaseSchema(CustomModel):
@@ -177,7 +177,7 @@ class RemindersBaseSchema(CustomModel):
     """Reminders Base Schema."""
 
     # Primary Keys
-    reminder_id: UUID4
+    reminder_id: UUID
 
     # Columns
     created_at: datetime.datetime | None = Field(default=None)
@@ -193,14 +193,14 @@ class RemindersBaseSchema(CustomModel):
     sns_topic_arn: str | None = Field(default=None)
     status: str | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
-    user_id: UUID4
+    user_id: UUID
 
 
 class TenancyAgreementsBaseSchema(CustomModel):
     """TenancyAgreements Base Schema."""
 
     # Primary Keys
-    id: UUID4
+    id: UUID
 
     # Columns
     agreement_embeddings: Any | None = Field(default=None)
@@ -211,18 +211,18 @@ class TenancyAgreementsBaseSchema(CustomModel):
     is_signed_by_all_parties: bool
     last_modified: datetime.datetime | None = Field(default=None)
     monthly_rent: Decimal
-    property_agent_id: UUID4
-    property_id: UUID4 | None = Field(default=None)
+    property_agent_id: UUID
+    property_id: UUID | None = Field(default=None)
     start_date: datetime.datetime
     status: str | None = Field(default=None)
-    tenant_id: UUID4
+    tenant_id: UUID
 
 
 class TenantProfilesBaseSchema(CustomModel):
     """TenantProfiles Base Schema."""
 
     # Primary Keys
-    profile_id: UUID4
+    profile_id: UUID
 
     # Columns
     created_at: datetime.datetime
@@ -240,7 +240,7 @@ class TenantProfilesBaseSchema(CustomModel):
     preferred_move_in_date: datetime.datetime
     tenant_type: str | None = Field(default=None)
     updated_at: datetime.datetime
-    user_id: UUID4
+    user_id: UUID
     visa_status: str
 
 
@@ -248,7 +248,7 @@ class UsersBaseSchema(CustomModel):
     """Users Base Schema."""
 
     # Primary Keys
-    user_id: UUID4
+    user_id: UUID
 
     # Columns
     created_at: datetime.datetime
@@ -271,14 +271,14 @@ class ConversationsInsert(CustomModelInsert):
     """Conversations Insert Schema."""
 
     # Primary Keys
-    conversation_id: UUID4 | None = Field(default=None)  # has default value
+    conversation_id: UUID | None = Field(default=None)  # has default value
 
     # Field properties:
     # created_at: has default value
     # updated_at: has default value
 
     # Required fields
-    user_id: UUID4
+    user_id: UUID
 
     # Optional fields
     created_at: datetime.datetime | None = Field(default=None)
@@ -289,7 +289,7 @@ class MessagesInsert(CustomModelInsert):
     """Messages Insert Schema."""
 
     # Primary Keys
-    message_id: UUID4 | None = Field(default=None)  # has default value
+    message_id: UUID | None = Field(default=None)  # has default value
 
     # Field properties:
     # conversation_id: nullable
@@ -301,7 +301,7 @@ class MessagesInsert(CustomModelInsert):
     role: str
 
     # Optional fields
-    conversation_id: UUID4 | None = Field(default=None)
+    conversation_id: UUID | None = Field(default=None)
     created_at: datetime.datetime | None = Field(default=None)
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
 
@@ -310,7 +310,7 @@ class PropertiesInsert(CustomModelInsert):
     """Properties Insert Schema."""
 
     # Primary Keys
-    property_id: UUID4 | None = Field(default=None)  # has default value
+    property_id: UUID | None = Field(default=None)  # has default value
 
     # Field properties:
     # address: nullable
@@ -370,7 +370,7 @@ class PropertyAgentInsert(CustomModelInsert):
     """PropertyAgent Insert Schema."""
 
     # Primary Keys
-    id: UUID4 | None = Field(default=None)  # has default value
+    id: UUID | None = Field(default=None)  # has default value
 
     # Field properties:
     # company_name: nullable
@@ -385,7 +385,7 @@ class PropertyPreferencesInsert(CustomModelInsert):
     """PropertyPreferences Insert Schema."""
 
     # Primary Keys
-    preference_id: UUID4 | None = Field(default=None)  # has default value
+    preference_id: UUID | None = Field(default=None)  # has default value
 
     # Field properties:
     # created_at: has default value
@@ -421,14 +421,14 @@ class PropertyPreferencesInsert(CustomModelInsert):
     reference_image_urls: list[str] | None = Field(default=None)
     required_amenities: list[str] | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
-    user_id: UUID4 | None = Field(default=None)
+    user_id: UUID | None = Field(default=None)
 
 
 class ReminderNotificationsInsert(CustomModelInsert):
     """ReminderNotifications Insert Schema."""
 
     # Primary Keys
-    notification_id: UUID4
+    notification_id: UUID
 
     # Field properties:
     # metadata: nullable
@@ -436,8 +436,8 @@ class ReminderNotificationsInsert(CustomModelInsert):
 
     # Required fields
     delivery_status: str
-    reminder_id: UUID4
-    user_id: UUID4
+    reminder_id: UUID
+    user_id: UUID
 
     # Optional fields
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
@@ -504,7 +504,7 @@ class TenancyAgreementsInsert(CustomModelInsert):
     """TenancyAgreements Insert Schema."""
 
     # Primary Keys
-    id: UUID4 | None = Field(default=None)  # has default value
+    id: UUID | None = Field(default=None)  # has default value
 
     # Field properties:
     # agreement_embeddings: nullable
@@ -519,9 +519,9 @@ class TenancyAgreementsInsert(CustomModelInsert):
     end_date: datetime.datetime
     is_signed_by_all_parties: bool
     monthly_rent: Decimal
-    property_agent_id: UUID4
+    property_agent_id: UUID
     start_date: datetime.datetime
-    tenant_id: UUID4
+    tenant_id: UUID
 
     # Optional fields
     agreement_embeddings: Any | None = Field(default=None)
@@ -529,7 +529,7 @@ class TenancyAgreementsInsert(CustomModelInsert):
     deposit_amount: Decimal | None = Field(default=None)
     embeddings: Any | None = Field(default=None)
     last_modified: datetime.datetime | None = Field(default=None)
-    property_id: UUID4 | None = Field(default=None)
+    property_id: UUID | None = Field(default=None)
     status: str | None = Field(default=None)
 
 
@@ -537,7 +537,7 @@ class TenantProfilesInsert(CustomModelInsert):
     """TenantProfiles Insert Schema."""
 
     # Primary Keys
-    profile_id: UUID4 | None = Field(default=None)  # has default value
+    profile_id: UUID | None = Field(default=None)  # has default value
 
     # Field properties:
     # created_at: has default value
@@ -557,7 +557,7 @@ class TenantProfilesInsert(CustomModelInsert):
     monthly_income: float
     nationality: str
     preferred_move_in_date: datetime.datetime
-    user_id: UUID4
+    user_id: UUID
     visa_status: str
 
     # Optional fields
@@ -577,7 +577,7 @@ class UsersInsert(CustomModelInsert):
     """Users Insert Schema."""
 
     # Primary Keys
-    user_id: UUID4 | None = Field(default=None)  # has default value
+    user_id: UUID | None = Field(default=None)  # has default value
 
     # Field properties:
     # created_at: has default value
@@ -610,7 +610,7 @@ class ConversationsUpdate(CustomModelUpdate):
     """Conversations Update Schema."""
 
     # Primary Keys
-    conversation_id: UUID4 | None = Field(default=None)
+    conversation_id: UUID | None = Field(default=None)
 
     # Field properties:
     # created_at: has default value
@@ -619,14 +619,14 @@ class ConversationsUpdate(CustomModelUpdate):
     # Optional fields
     created_at: datetime.datetime | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
-    user_id: UUID4 | None = Field(default=None)
+    user_id: UUID | None = Field(default=None)
 
 
 class MessagesUpdate(CustomModelUpdate):
     """Messages Update Schema."""
 
     # Primary Keys
-    message_id: UUID4 | None = Field(default=None)
+    message_id: UUID | None = Field(default=None)
 
     # Field properties:
     # conversation_id: nullable
@@ -634,7 +634,7 @@ class MessagesUpdate(CustomModelUpdate):
     # metadata: nullable
 
     # Optional fields
-    conversation_id: UUID4 | None = Field(default=None)
+    conversation_id: UUID | None = Field(default=None)
     created_at: datetime.datetime | None = Field(default=None)
     message: str | None = Field(default=None)
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
@@ -645,7 +645,7 @@ class PropertiesUpdate(CustomModelUpdate):
     """Properties Update Schema."""
 
     # Primary Keys
-    property_id: UUID4 | None = Field(default=None)
+    property_id: UUID | None = Field(default=None)
 
     # Field properties:
     # address: nullable
@@ -703,7 +703,7 @@ class PropertyAgentUpdate(CustomModelUpdate):
     """PropertyAgent Update Schema."""
 
     # Primary Keys
-    id: UUID4 | None = Field(default=None)
+    id: UUID | None = Field(default=None)
 
     # Field properties:
     # company_name: nullable
@@ -718,7 +718,7 @@ class PropertyPreferencesUpdate(CustomModelUpdate):
     """PropertyPreferences Update Schema."""
 
     # Primary Keys
-    preference_id: UUID4 | None = Field(default=None)
+    preference_id: UUID | None = Field(default=None)
 
     # Field properties:
     # created_at: has default value
@@ -754,14 +754,14 @@ class PropertyPreferencesUpdate(CustomModelUpdate):
     reference_image_urls: list[str] | None = Field(default=None)
     required_amenities: list[str] | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
-    user_id: UUID4 | None = Field(default=None)
+    user_id: UUID | None = Field(default=None)
 
 
 class ReminderNotificationsUpdate(CustomModelUpdate):
     """ReminderNotifications Update Schema."""
 
     # Primary Keys
-    notification_id: UUID4 | None = Field(default=None)
+    notification_id: UUID | None = Field(default=None)
 
     # Field properties:
     # metadata: nullable
@@ -770,9 +770,9 @@ class ReminderNotificationsUpdate(CustomModelUpdate):
     # Optional fields
     delivery_status: str | None = Field(default=None)
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
-    reminder_id: UUID4 | None = Field(default=None)
+    reminder_id: UUID | None = Field(default=None)
     sent_at: datetime.datetime | None = Field(default=None)
-    user_id: UUID4 | None = Field(default=None)
+    user_id: UUID | None = Field(default=None)
 
 
 class ReminderTypesUpdate(CustomModelUpdate):
@@ -794,7 +794,7 @@ class RemindersUpdate(CustomModelUpdate):
     """Reminders Update Schema."""
 
     # Primary Keys
-    reminder_id: UUID4 | None = Field(default=None)
+    reminder_id: UUID | None = Field(default=None)
 
     # Field properties:
     # created_at: nullable, has default value
@@ -824,14 +824,14 @@ class RemindersUpdate(CustomModelUpdate):
     sns_topic_arn: str | None = Field(default=None)
     status: str | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
-    user_id: UUID4 | None = Field(default=None)
+    user_id: UUID | None = Field(default=None)
 
 
 class TenancyAgreementsUpdate(CustomModelUpdate):
     """TenancyAgreements Update Schema."""
 
     # Primary Keys
-    id: UUID4 | None = Field(default=None)
+    id: UUID | None = Field(default=None)
 
     # Field properties:
     # agreement_embeddings: nullable
@@ -851,18 +851,18 @@ class TenancyAgreementsUpdate(CustomModelUpdate):
     is_signed_by_all_parties: bool | None = Field(default=None)
     last_modified: datetime.datetime | None = Field(default=None)
     monthly_rent: Decimal | None = Field(default=None)
-    property_agent_id: UUID4 | None = Field(default=None)
-    property_id: UUID4 | None = Field(default=None)
+    property_agent_id: UUID | None = Field(default=None)
+    property_id: UUID | None = Field(default=None)
     start_date: datetime.datetime | None = Field(default=None)
     status: str | None = Field(default=None)
-    tenant_id: UUID4 | None = Field(default=None)
+    tenant_id: UUID | None = Field(default=None)
 
 
 class TenantProfilesUpdate(CustomModelUpdate):
     """TenantProfiles Update Schema."""
 
     # Primary Keys
-    profile_id: UUID4 | None = Field(default=None)
+    profile_id: UUID | None = Field(default=None)
 
     # Field properties:
     # created_at: has default value
@@ -892,7 +892,7 @@ class TenantProfilesUpdate(CustomModelUpdate):
     preferred_move_in_date: datetime.datetime | None = Field(default=None)
     tenant_type: str | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
-    user_id: UUID4 | None = Field(default=None)
+    user_id: UUID | None = Field(default=None)
     visa_status: str | None = Field(default=None)
 
 
@@ -900,7 +900,7 @@ class UsersUpdate(CustomModelUpdate):
     """Users Update Schema."""
 
     # Primary Keys
-    user_id: UUID4 | None = Field(default=None)
+    user_id: UUID | None = Field(default=None)
 
     # Field properties:
     # created_at: has default value
