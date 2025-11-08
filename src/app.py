@@ -12,6 +12,8 @@ from core import DocumentIndexManager, CasaAmigoAgent
 from utils.current_auth import set_current_auth
 from utils.moderation import moderate_content, get_moderation_message
 import requests
+from audiorecorder import audiorecorder
+from utils.voice import VoiceManager
 
 class StreamlitApp:
 
@@ -27,6 +29,7 @@ class StreamlitApp:
         self.config_manager = ConfigManager()
         self.doc_manager = DocumentIndexManager()
         self.chatbot = CasaAmigoAgent(self.doc_manager.index, self.config_manager.api_key)
+        self.voice_manager = VoiceManager(self.config_manager.api_key)
         self._setup_page()
         self._inject_styles()
         self._initialize_session_state()
@@ -52,144 +55,158 @@ class StreamlitApp:
         st.markdown(
             f"""
             <style>
-              .block-container {{
+            .block-container {{
                 padding-top: 1.1rem;
-                padding-bottom: 2rem;
+                padding-bottom: 7rem;  /* Space for fixed input */
                 background: #FFFFFF;
-              }}
+            }}
 
-              /* Sidebar gradient */
-              [data-testid="stSidebar"] > div:first-child {{
+            /* Sidebar gradient */
+            [data-testid="stSidebar"] > div:first-child {{
                 background: linear-gradient(180deg, {self.NAVY} 0%, {self.BLUE} 55%, {self.RED} 130%);
                 color: #FFFFFF;
-              }}
-              [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2,
-              [data-testid="stSidebar"] h3, [data-testid="stSidebar"] p,
-              [data-testid="stSidebar"] label {{ color: #FFFFFF !important; }}
-              [data-testid="stSidebar"] hr {{
+            }}
+            [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2,
+            [data-testid="stSidebar"] h3, [data-testid="stSidebar"] p,
+            [data-testid="stSidebar"] label {{ color: #FFFFFF !important; }}
+            [data-testid="stSidebar"] hr {{
                 border: none; border-top: 1px solid rgba(255,255,255,0.3);
                 margin: .6rem 0 1rem 0;
-              }}
-              .ca-tagline {{
+            }}
+            .ca-tagline {{
                 text-align: center; font-style: italic; color: #FFFFFF;
                 opacity: 0.95; margin-top: -6px; margin-bottom: 12px;
-              }}
+            }}
 
-              /* Red focus */
-              [data-testid="stSidebar"] textarea,
-              [data-testid="stChatInput"] textarea {{
+            /* Red focus */
+            [data-testid="stSidebar"] textarea,
+            [data-testid="stChatInput"] textarea {{
                 background: #FFFFFF !important; color: #000 !important;
                 border: 2px solid {self.RED}80 !important; border-radius: 10px !important;
                 font-size: 1rem !important; padding: 0.6rem 1rem !important;
                 outline: none !important; box-shadow: none !important;
                 transition: border 0.15s ease-in-out;
-              }}
-              [data-testid="stSidebar"] textarea:focus,
-              [data-testid="stChatInput"] textarea:focus {{
+            }}
+            [data-testid="stSidebar"] textarea:focus,
+            [data-testid="stChatInput"] textarea:focus {{
                 border: 2px solid {self.RED} !important;
                 box-shadow: 0 0 6px {self.RED}60 !important;
-              }}
+            }}
 
-              /* Buttons (pill) */
-              .stButton>button {{
+            /* Buttons (pill) */
+            .stButton>button {{
                 border: 2px solid {self.RED}; color: {self.RED};
                 background: transparent; border-radius: 999px;
                 padding: .55rem 1rem; font-weight: 600;
                 transition: all 0.2s ease-in-out;
-              }}
-              .stButton>button:hover {{ background: {self.RED} !important; color: #FFF !important; }}
+            }}
+            .stButton>button:hover {{ background: {self.RED} !important; color: #FFF !important; }}
 
-              /* Chat bubbles */
-              .ca-bubble {{
+            /* Chat bubbles */
+            .ca-bubble {{
                 border-radius: 18px; padding: 14px 16px; margin: 6px 0;
                 color: #0A0A0A; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
                 box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-              }}
-              .ca-user {{ background: rgba(216, 67, 57, 0.08); border-left: 4px solid {self.RED}; }}
-              .ca-assist {{ background: rgba(44, 75, 142, 0.08); border-left: 4px solid {self.BLUE}; }}
+            }}
+            .ca-user {{ background: rgba(216, 67, 57, 0.08); border-left: 4px solid {self.RED}; }}
+            .ca-assist {{ background: rgba(44, 75, 142, 0.08); border-left: 4px solid {self.BLUE}; }}
 
-              /* Avatars larger & circular */
-              [data-testid="stChatMessage"] img {{
+            /* Avatars larger & circular */
+            [data-testid="stChatMessage"] img {{
                 border-radius: 50% !important; border: 3px solid #fff;
                 width: 70px !important; height: 70px !important; object-fit: cover;
-              }}
+            }}
 
-              /* Typing indicator */
-              .ca-typing {{
+            /* Typing indicator */
+            .ca-typing {{
                 display:inline-block; border-radius: 18px; padding: 12px 16px; margin: 6px 0;
                 background: rgba(44, 75, 142, 0.08); border-left: 4px solid {self.BLUE};
-              }}
-              .ca-dot {{
+            }}
+            .ca-dot {{
                 display:inline-block; width:6px; height:6px; margin:0 2px;
                 background:{self.BLUE}; border-radius:50%; animation: ca-bounce 1s infinite;
-              }}
-              .ca-dot:nth-child(2) {{ animation-delay: .15s; }}
-              .ca-dot:nth-child(3) {{ animation-delay: .3s; }}
-              @keyframes ca-bounce {{
+            }}
+            .ca-dot:nth-child(2) {{ animation-delay: .15s; }}
+            .ca-dot:nth-child(3) {{ animation-delay: .3s; }}
+            @keyframes ca-bounce {{
                 0%, 80%, 100% {{ transform: scale(1); opacity:.6; }}
                 40% {{ transform: scale(1.6); opacity:1; }}
-              }}
+            }}
 
-              .ca-footer {{ text-align:center; font-size:.85rem; color:rgba(255,255,255,0.8); margin-top:10px; }}
-              .ca-main-footer {{ text-align:center; font-size:.85rem; color:#666; margin-top:14px; opacity:.8; }}
+            .ca-footer {{ text-align:center; font-size:.85rem; color:rgba(255,255,255,0.8); margin-top:10px; }}
+            .ca-main-footer {{ text-align:center; font-size:.85rem; color:#666; margin-top:14px; opacity:.8; }}
 
-                /* Sidebar Login Section Styling */
-              div[data-testid="stExpander"] {{
+            /* Sidebar Login Section Styling */
+            div[data-testid="stExpander"] {{
                 border-radius: 14px !important;
                 background: rgba(255,255,255,0.1) !important;
                 border: 1px solid rgba(255,255,255,0.25) !important;
                 color: #fff !important;
-              }}
+            }}
 
-              /* Inputs: light box + black text */
-              div[data-testid="stExpander"] input {{
-                background: #fff !important;
-                border: 1px solid rgba(255,255,255,0.6) !important;
-                border-radius: 8px !important;
-                color: #000 !important;               /* black text */
-                font-size: 0.9rem !important;
-                padding: 0.4rem 0.6rem !important;
-              }}
-              div[data-testid="stExpander"] input:focus {{
-                outline: none !important;
-                border: 1px solid {self.RED} !important; /* Casa Amigo red */
-                box-shadow: 0 0 5px rgba(216,67,57,0.3) !important;
-              }}
-
-              /* Buttons */
-              div[data-testid="stExpander"] .stButton > button {{
+            /* Buttons */
+            div[data-testid="stExpander"] .stButton > button {{
                 border: none !important;
                 background: {self.RED} !important;
                 color: #fff !important;
                 border-radius: 999px !important;
                 font-weight: 600 !important;
-                font-size: 0.9rem !important;        /* smaller font */
+                font-size: 0.9rem !important;
                 padding: 0.45rem 1.1rem !important;
                 width: 100%;
                 transition: all 0.2s ease-in-out;
-              }}
-              div[data-testid="stExpander"] .stButton > button:hover {{
+            }}
+            div[data-testid="stExpander"] .stButton > button:hover {{
                 background: #b7352d !important;
                 color: #fff !important;
                 transform: translateY(-1px);
-              }}
+            }}
 
-              /* Status + label colors */
-              div[data-testid="stExpander"] label,
-              div[data-testid="stExpander"] p,
-              div[data-testid="stExpander"] .stCaption,
-              div[data-testid="stExpander"] .stInfo {{
+            /* Status + label colors */
+            div[data-testid="stExpander"] label,
+            div[data-testid="stExpander"] p,
+            div[data-testid="stExpander"] .stCaption,
+            div[data-testid="stExpander"] .stInfo {{
                 color: rgba(255,255,255,0.9) !important;
                 font-size: 0.9rem !important;
-              }}
+            }}
 
-                /* Expander title (🔐 Login / Logout) styling */
-              div[data-testid="stExpander"] > div:first-child p {{
-                font-size: 1.1rem !important;       /* same as Feedback title */
-                font-weight: 700 !important;        /* bold */
-                color: #FFFFFF !important;          /* white text */
+            /* Expander title (🔐 Login / Logout) styling */
+            div[data-testid="stExpander"] > div:first-child p {{
+                font-size: 1.1rem !important;
+                font-weight: 700 !important;
+                color: #FFFFFF !important;
                 text-align: center !important;
-              }}
+            }}
+
+            /* Fixed chat input area */
+            [data-testid="stChatInputContainer"] {{
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 21rem !important;
+                right: 0 !important;
+                background: linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.95) 80%, rgba(255,255,255,0) 100%);
+                padding: 1rem 2rem 1rem 2rem !important;
+                z-index: 999 !important;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            }}
+
+            /* Adjust when sidebar is collapsed */
+            @media (max-width: 768px) {{
+                [data-testid="stChatInputContainer"] {{
+                    left: 0 !important;
+                }}
+            }}
+
+            /* Make sure columns inside chat input container also fix */
+            [data-testid="stChatInputContainer"] [data-testid="column"] {{
+                position: relative !important;
+            }}
+
+            /* Audio recorder will be inside the fixed container */
+            [data-testid="stChatInputContainer"] .stAudio {{
+                margin-bottom: 0.5rem;
+            }}
 
             </style>
             """,
@@ -394,23 +411,45 @@ class StreamlitApp:
                 st.markdown(f'<div class="ca-bubble {bubble_class}">{content}</div>', unsafe_allow_html=True)
 
     def _handle_user_input(self):
-        if user_query := st.chat_input("Type your message..."):
+        # Put both in columns so they're in the same container that Streamlit fixes
+        cols = st.columns([19, 1])
+        
+        with cols[0]:
+            text_query = st.chat_input("Type your message or use voice 🎤")
+        
+        with cols[1]:
+            audio_bytes = audiorecorder("🎤", "⏹️", key="audio_recorder")
+        
+        user_query = None
+        
+        # Handle voice input
+        if audio_bytes and len(audio_bytes) > 0:
+            print(f"[APP] Audio received: {len(audio_bytes)} bytes")
+            
+            with st.spinner("🎤 Transcribing your message..."):
+                user_query = self.voice_manager.transcribe_audio(audio_bytes)
+            
+            if not user_query:
+                st.error("❌ Could not transcribe audio. Please try again.")
+                return
+            
+        elif text_query:
+            user_query = text_query
+
+        if user_query:
             print(f"[APP] Moderating user input: {user_query[:50]}...")
             moderation_result = moderate_content(user_query, self.config_manager.api_key)
             
             if not moderation_result["is_safe"]:
-                # Content was flagged - show warning and don't process
                 flagged_cats = moderation_result["flagged_categories"]
                 print(f"[APP] Content flagged: {flagged_cats}")
                 
                 warning_msg = get_moderation_message(flagged_cats)
                 
-                # Show user message (so they see what they typed)
                 st.session_state["messages"].append({"role": "user", "content": user_query})
                 with st.chat_message("user", avatar=self.user_icon):
                     st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
                 
-                # Show moderation warning
                 warning_response = (
                     f"⚠️ {warning_msg}\n\n"
                     "Please rephrase your message to comply with our community guidelines. "
@@ -422,7 +461,6 @@ class StreamlitApp:
                 
                 st.session_state["messages"].append({"role": "assistant", "content": warning_response})
                 
-                # Log the incident (for your records/demo)
                 if "moderation_flags" not in st.session_state:
                     st.session_state["moderation_flags"] = []
                 st.session_state["moderation_flags"].append({
@@ -431,17 +469,14 @@ class StreamlitApp:
                     "categories": flagged_cats
                 })
                 
-                return  # Stop processing
+                return
             
-            # ✅ CONTENT IS SAFE - Continue with normal flow
             print(f"[APP] Content passed moderation")
             
-            # user message
             st.session_state["messages"].append({"role": "user", "content": user_query})
             with st.chat_message("user", avatar=self.user_icon):
                 st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
 
-            # assistant thinking + reply via CasaAmigoAgent.chat()
             with st.chat_message("assistant", avatar=self.thinking_icon):
                 placeholder = st.empty()
                 for _ in range(3):
@@ -455,74 +490,78 @@ class StreamlitApp:
                     set_current_auth(auth)
                     response = self.chatbot.chat(user_query, auth=auth)
                     
-                    # ✅ STEP 2: MODERATE ASSISTANT OUTPUT (OPTIONAL BUT RECOMMENDED)
                     print(f"[APP] Moderating assistant response")
                     response_mod = moderate_content(response, self.config_manager.api_key)
                     
                     if not response_mod["is_safe"]:
                         print(f"[APP] WARNING: Assistant response was flagged: {response_mod['flagged_categories']}")
-                        # Log this - your model shouldn't generate unsafe content
                         response = (
                             "I apologize, but I need to rephrase my response. "
                             "Let me try again with a different approach."
                         )
-                        # In production, you might want to retry the LLM call with stronger instructions
                     
                 except Exception as e:
                     response = "⚠️ Sorry, something went wrong. Please try again."
                     st.toast(f"Backend error: {e}")
 
                 placeholder.markdown(f"<div class='ca-bubble ca-assist'>{response}</div>", unsafe_allow_html=True)
+                
+                # Generate voice response if enabled
+                if st.session_state.get("voice_enabled", False):
+                    with st.spinner("🔊 Generating voice response..."):
+                        voice = st.session_state.get("tts_voice", "nova")
+                        audio_response = self.voice_manager.text_to_speech(response, voice=voice)
+                        
+                        if audio_response:
+                            st.audio(audio_response, format="audio/mp3", autoplay=False)
+                        else:
+                            st.caption("⚠️ Voice generation failed")
 
-                # debug expander (per-turn)
-                with st.sidebar.expander("🔎 Debug (last turn)", expanded=False):
-                    # Show moderation results
-                    st.write("**Input Moderation:**")
-                    if moderation_result.get("error"):
-                        st.warning(f"Moderation error: {moderation_result['error']}")
-                    else:
-                        st.write(f"✅ Safe: {moderation_result['is_safe']}")
-                        if moderation_result['flagged_categories']:
-                            st.write(f"⚠️ Flagged: {', '.join(moderation_result['flagged_categories'])}")
-                    
-                    # ... rest of your existing debug code ...
-                    logs = consume_debug_log()
-                    if not logs:
-                        st.caption("No tool logs yet.")
-                    else:
-                        for row in logs:
-                            if row["event"] == "tool_called":
-                                st.write(f"**Tool:** `{row['tool']}`")
-                                st.code(row["args"])
-                            elif row["event"] == "retrieval":
-                                st.write(f"**retrieved_k:** {row['retrieved_k']}")
-                                top = row.get("top", [])
-                                if top:
-                                    st.write("**Top-3:**")
-                                    for t in top:
-                                        st.write(f"- #{t['rank']} — score={t['score']} — {t['label']}")
-                            elif row["event"] == "tool_error":
-                                st.error(f"{row['tool']} error: {row['error']}")
+                # debug expander
+                if self.config_manager.get_debug_mode():
+                    with st.sidebar.expander("🔎 Debug (last turn)", expanded=False):
+                        st.write("**Input Moderation:**")
+                        if moderation_result.get("error"):
+                            st.warning(f"Moderation error: {moderation_result['error']}")
+                        else:
+                            st.write(f"✅ Safe: {moderation_result['is_safe']}")
+                            if moderation_result['flagged_categories']:
+                                st.write(f"⚠️ Flagged: {', '.join(moderation_result['flagged_categories'])}")
+                        
+                        logs = consume_debug_log()
+                        if not logs:
+                            st.caption("No tool logs yet.")
+                        else:
+                            for row in logs:
+                                if row["event"] == "tool_called":
+                                    st.write(f"**Tool:** `{row['tool']}`")
+                                    st.code(row["args"])
+                                elif row["event"] == "retrieval":
+                                    st.write(f"**retrieved_k:** {row['retrieved_k']}")
+                                    top = row.get("top", [])
+                                    if top:
+                                        st.write("**Top-3:**")
+                                        for t in top:
+                                            st.write(f"- #{t['rank']} — score={t['score']} — {t['label']}")
+                                elif row["event"] == "tool_error":
+                                    st.error(f"{row['tool']} error: {row['error']}")
 
-                    calls = self.chatbot.get_tool_calls() if hasattr(self.chatbot, "get_tool_calls") else []
-                    if calls:
-                        st.markdown("---")
-                        st.write("**Agent tool calls**")
-                        for c in calls:
-                            st.write(f"- #{c['i']} **{c['name']}**")
-                            st.code(c["args"])
-                    else:
-                        st.caption("No agent tool calls recorded.")
+                        calls = self.chatbot.get_tool_calls() if hasattr(self.chatbot, "get_tool_calls") else []
+                        if calls:
+                            st.markdown("---")
+                            st.write("**Agent tool calls**")
+                            for c in calls:
+                                st.write(f"- #{c['i']} **{c['name']}**")
+                                st.code(c["args"])
+                        else:
+                            st.caption("No agent tool calls recorded.")
 
-            # persist assistant message
             st.session_state["messages"].append({"role": "assistant", "content": response})
 
-        # footer below chat box
         st.markdown(
             "<div class='ca-main-footer'>⚡ Powered by <b>Casa Amigo</b> © 2025 — Simplifying rentals, one chat at a time.</div>",
             unsafe_allow_html=True,
         )
-
     # main run
     def run(self):
         self._render_sidebar()
