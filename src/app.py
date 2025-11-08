@@ -411,20 +411,35 @@ class StreamlitApp:
                 st.markdown(f'<div class="ca-bubble {bubble_class}">{content}</div>', unsafe_allow_html=True)
 
     def _handle_user_input(self):
-        # Put both in columns so they're in the same container that Streamlit fixes
-        cols = st.columns([19, 1])
+        """Handle user input with clean WhatsApp-style UX"""
         
-        with cols[0]:
-            text_query = st.chat_input("Type your message or use voice 🎤")
+        # Initialize session state for audio tracking
+        if "last_audio_length" not in st.session_state:
+            st.session_state["last_audio_length"] = 0
         
-        with cols[1]:
-            audio_bytes = audiorecorder("🎤", "⏹️", key="audio_recorder")
+        # Create a container that will be fixed at the bottom
+        input_container = st.container()
+        
+        with input_container:
+            # Use columns: wide for text input, narrow for mic button
+            col_text, col_mic = st.columns([19, 1])
+            
+            with col_text:
+                text_query = st.chat_input("Type your message...")
+            
+            with col_mic:
+                audio_bytes = audiorecorder("🎤", "⏹️", key="audio_recorder")
         
         user_query = None
         
-        # Handle voice input
-        if audio_bytes and len(audio_bytes) > 0:
-            print(f"[APP] Audio received: {len(audio_bytes)} bytes")
+        # Handle voice input - only process if it's NEW audio
+        current_audio_length = len(audio_bytes) if audio_bytes else 0
+        
+        if audio_bytes and current_audio_length > 0 and current_audio_length != st.session_state["last_audio_length"]:
+            print(f"[APP] New audio received: {current_audio_length} bytes")
+            
+            # Update the last audio length to prevent reprocessing
+            st.session_state["last_audio_length"] = current_audio_length
             
             with st.spinner("🎤 Transcribing your message..."):
                 user_query = self.voice_manager.transcribe_audio(audio_bytes)
@@ -435,6 +450,8 @@ class StreamlitApp:
             
         elif text_query:
             user_query = text_query
+            # Reset audio tracking when text is used
+            st.session_state["last_audio_length"] = 0
 
         if user_query:
             print(f"[APP] Moderating user input: {user_query[:50]}...")
