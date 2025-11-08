@@ -453,7 +453,7 @@ class StreamlitApp:
                     auth = st.session_state.get("auth", {})
                     print(f"[APP] Auth state: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}, logged_in={auth.get('logged_in')}")
                     set_current_auth(auth)
-                    response = self.chatbot.chat(user_query)
+                    response = self.chatbot.chat(user_query, auth=auth)
                     
                     # ✅ STEP 2: MODERATE ASSISTANT OUTPUT (OPTIONAL BUT RECOMMENDED)
                     print(f"[APP] Moderating assistant response")
