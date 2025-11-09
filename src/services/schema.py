@@ -4,7 +4,7 @@ import datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import UUID, BaseModel, Field, Json
+from pydantic import BaseModel, Field, Json
 from uuid import UUID
 
 # CUSTOM CLASSES
@@ -182,15 +182,12 @@ class RemindersBaseSchema(CustomModel):
     # Columns
     created_at: datetime.datetime | None = Field(default=None)
     description: str | None = Field(default=None)
-    eventbridge_rule: str | None = Field(default=None)
-    eventbridge_rule_name: str | None = Field(default=None)
     last_sent: datetime.datetime | None = Field(default=None)
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
     recurrence: str | None = Field(default=None)
     recurrence_pattern: str | None = Field(default=None)
     reminder_date: datetime.datetime | None = Field(default=None)
     reminder_type_id: int
-    sns_topic_arn: str | None = Field(default=None)
     status: str | None = Field(default=None)
     updated_at: datetime.datetime | None = Field(default=None)
     user_id: UUID
@@ -470,14 +467,11 @@ class RemindersInsert(CustomModelInsert):
     # Field properties:
     # created_at: nullable, has default value
     # description: nullable
-    # eventbridge_rule: nullable
-    # eventbridge_rule_name: nullable
     # last_sent: nullable, has default value
     # metadata: nullable
     # recurrence: nullable
     # recurrence_pattern: nullable
     # reminder_date: nullable, has default value
-    # sns_topic_arn: nullable
     # status: nullable
     # updated_at: nullable, has default value
 
