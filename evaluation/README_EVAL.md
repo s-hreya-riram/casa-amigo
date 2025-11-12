@@ -42,3 +42,9 @@ now you can open the latest report at evaluation/RAG_REPORT.md
 
 ## note
 - all previous versions of evaluation_1, evaluation_2 etc reports are saved to track improvmeents
+
+## helper files
+- since we had to edit the index ( change chunking etc to improve performance ) and then rerun all the evaluation , following two files were used to locally rebuild index and test it after any changes / before running evaluation steps above again
+
+- **rebuild_index.py**
+- **test_index.py**
