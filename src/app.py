@@ -57,7 +57,7 @@ class StreamlitApp:
             <style>
             .block-container {{
                 padding-top: 1.1rem;
-                padding-bottom: 7rem;  /* Space for fixed input */
+                padding-bottom: 2rem;
                 background: #FFFFFF;
             }}
 
@@ -67,7 +67,8 @@ class StreamlitApp:
                 color: #FFFFFF;
             }}
             [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2,
-            [data-testid="stSidebar"] h3, [data-testid="stSidebar"] p,
+            [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4,
+            [data-testid="stSidebar"] p,
             [data-testid="stSidebar"] label {{ color: #FFFFFF !important; }}
             [data-testid="stSidebar"] hr {{
                 border: none; border-top: 1px solid rgba(255,255,255,0.3);
@@ -149,13 +150,13 @@ class StreamlitApp:
                 background: #fff !important;
                 border: 1px solid rgba(255,255,255,0.6) !important;
                 border-radius: 8px !important;
-                color: #000 !important;               /* black text */
+                color: #000 !important;
                 font-size: 0.9rem !important;
                 padding: 0.4rem 0.6rem !important;
             }}
             div[data-testid="stExpander"] input:focus {{
                 outline: none !important;
-                border: 1px solid {self.RED} !important; /* Casa Amigo red */
+                border: 1px solid {self.RED} !important;
                 box-shadow: 0 0 5px rgba(216,67,57,0.3) !important;
             }}
             
@@ -186,7 +187,7 @@ class StreamlitApp:
                 font-size: 0.9rem !important;
             }}
 
-            /* Expander title (🔐 Login / Logout) styling */
+            /* Expander title styling */
             div[data-testid="stExpander"] > div:first-child p {{
                 font-size: 1.1rem !important;
                 font-weight: 700 !important;
@@ -194,35 +195,67 @@ class StreamlitApp:
                 text-align: center !important;
             }}
 
-            /* Fixed chat input area */
-            [data-testid="stChatInputContainer"] {{
-                position: fixed !important;
-                bottom: 0 !important;
-                left: 21rem !important;
-                right: 0 !important;
-                background: linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.95) 80%, rgba(255,255,255,0) 100%);
-                padding: 1rem 2rem 1rem 2rem !important;
-                z-index: 999 !important;
-                box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            /* Voice section in sidebar */
+            .voice-section {{
+                padding: 0.8rem 0.5rem;
+                margin: 0.5rem 0;
+            }}
+            
+            .voice-hint {{
+                color: rgba(255,255,255,0.9);
+                font-size: 0.88rem;
+                line-height: 1.5;
+                margin-bottom: 0.7rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }}
+            
+            /* Make all parent divs of the audio recorder transparent */
+            div[data-testid="stAudio"],
+            div[data-testid="stAudio"] > div,
+            div[data-testid="stAudio"] > div > div,
+            div[data-testid="stVerticalBlock"],
+            div[data-testid="stVerticalBlock"] > div,
+            div[data-testid="stVerticalBlock"] > div > div {{
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
             }}
 
-            /* Adjust when sidebar is collapsed */
-            @media (max-width: 768px) {{
-                [data-testid="stChatInputContainer"] {{
-                    left: 0 !important;
-                }}
+            /* Also remove padding/margin from the column container */
+            div[data-testid="column"] {{
+                padding: 0 !important;
+                margin: 0 !important;
             }}
 
-            /* Make sure columns inside chat input container also fix */
-            [data-testid="stChatInputContainer"] [data-testid="column"] {{
-                position: relative !important;
+            /* Remove any internal min-height / extra spacing */
+            .stAudio, [data-testid="stAudio"] {{
+                min-height: 0 !important;
             }}
 
-            /* Audio recorder will be inside the fixed container */
-            [data-testid="stChatInputContainer"] .stAudio {{
-                margin-bottom: 0.5rem;
+            /* Keep buttons flush and without spacing */
+            .stAudio button,
+            [data-testid="stAudio"] button,
+            div[data-testid="stVerticalBlock"] button[kind="secondary"] {{
+                margin: 0 !important;
+                padding: 0 !important;
+                background: transparent !important;
+                border: none !important;
+                width: auto !important;
+                height: auto !important;
+                min-width: auto !important;
+                min-height: auto !important;
             }}
 
+            [data-testid="column"] > div {{
+                gap: 0 !important;
+            }}
+
+
+            
             </style>
             """,
             unsafe_allow_html=True,
@@ -244,25 +277,27 @@ class StreamlitApp:
                 "email": None,
                 "logged_in": False,
             }
+        
+        # Voice-specific state
+        if "voice_enabled" not in st.session_state:
+            st.session_state["voice_enabled"] = False
+        
+        if "tts_voice" not in st.session_state:
+            st.session_state["tts_voice"] = "nova"
+        
+        if "pending_voice_query" not in st.session_state:
+            st.session_state["pending_voice_query"] = None
+        
+        if "last_audio_bytes" not in st.session_state:
+            st.session_state["last_audio_bytes"] = None
 
-        # ========== AUTH HELPERS (LOCAL API) ==========
     def _api_base(self) -> str:
-        """
-        Determines the base API URL, prioritizing Streamlit Secrets
-        for cloud deployment, then environment variables, then local default.
-        """
-        # 1. Try to get from Streamlit Secrets (for Streamlit Cloud deployment)
+        """Determines the base API URL"""
         try:
-            # Assumes the key is [api] base_url in .streamlit/secrets.toml
-            # Note: st.secrets must be available (i.e., imported at top of file)
             if "api" in st.secrets and "base_url" in st.secrets["api"]:
                 return st.secrets["api"]["base_url"].rstrip("/")
         except Exception:
-            # Ignore errors if st.secrets is not available (e.g., local run)
             pass
-
-        # 2. Fallback to Environment Variable (for local run or other deployments)
-        # Defaults to local FastAPI URL if API_BASE is not set
         return os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
 
     def _api_login(self, email: str, password: str):
@@ -294,10 +329,7 @@ class StreamlitApp:
                     "logged_in": True,
                 }
                 
-                # Store in session_state (main source of truth)
                 st.session_state["auth"] = auth_data
-                
-                # ✅ Also store in _current_auth (for tools to read)
                 set_current_auth(auth_data)
                 
                 st.toast("Logged in.")
@@ -323,10 +355,9 @@ class StreamlitApp:
         }
         st.toast("Logged out.")
 
-    # sidebar
     def _render_sidebar(self):
         with st.sidebar:
-            # debug/config block (only when debug mode ON)
+            # debug/config block
             if self.config_manager.get_debug_mode():
                 st.subheader("🔧 Configuration Status")
 
@@ -365,12 +396,10 @@ class StreamlitApp:
             st.markdown("<div class='ca-tagline'>Simplifying rentals, <br>one chat at a time.</div>", unsafe_allow_html=True)
             st.divider()
         
-            #  Login / Logout
-
+            # Login / Logout
             with st.expander("🔐 Login / Logout", expanded=False):
-
                 email = st.text_input("Email", key="auth_email")
-                pwd   = st.text_input("Password", type="password", key="auth_pwd")
+                pwd = st.text_input("Password", type="password", key="auth_pwd")
 
                 c1, c2 = st.columns(2)
                 with c1:
@@ -384,17 +413,64 @@ class StreamlitApp:
                 if auth["logged_in"]:
                     st.success(f"Logged in as: {auth.get('email') or 'user'}")
                 else:
-                    st.caption("You’re not logged in.")
+                    st.caption("You're not logged in.")
             
-            # In _render_sidebar, add after the login expander:
             if st.session_state.get("auth", {}).get("logged_in"):
                 st.caption(f"🔐 Auth persisted: {st.session_state['auth'].get('email')}")
                 st.caption(f"User ID: {st.session_state['auth'].get('user_id')}")
             
             st.divider()
 
-            # feedback/bug report
+            # Voice Input Section - Simple and Clean
+            st.markdown("<div class='voice-section'>", unsafe_allow_html=True)
+            
+            # Create a clean layout with text and button side by side
+            col1, col2 = st.columns([3.25, 1])
+            
+            with col1:
+                st.markdown(
+                    "<p class='voice-hint'>Prefer to speak? Record your message instead of typing.</p>",
+                    unsafe_allow_html=True
+                )
+            
+            with col2:
+                # Audio recorder with cleaner radio waves emoji (common in voice apps)
+                audio_bytes = audiorecorder("🔴", "⏹️", key="sidebar_voice")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Process voice input only if it's new audio
+            if audio_bytes and len(audio_bytes) > 0:
+                # Convert AudioSegment to bytes for hashing
+                try:
+                    # Export audio to bytes
+                    from io import BytesIO
+                    audio_buffer = BytesIO()
+                    audio_bytes.export(audio_buffer, format="wav")
+                    audio_data = audio_buffer.getvalue()
+                    
+                    # Check if this is new audio (different from last processed)
+                    current_audio_hash = hash(audio_data)
+                    last_audio_hash = st.session_state.get("last_audio_hash", None)
+                    
+                    if current_audio_hash != last_audio_hash:
+                        st.session_state["last_audio_hash"] = current_audio_hash
+                        
+                        with st.spinner("Transcribing..."):
+                            transcribed_text = self.voice_manager.transcribe_audio(audio_bytes)
+                        
+                        if transcribed_text:
+                            # Store in session state to be processed in main area
+                            st.session_state["pending_voice_query"] = transcribed_text
+                            st.rerun()
+                        else:
+                            st.error("Could not transcribe. Please try again.")
+                except Exception as e:
+                    st.error(f"Error processing audio: {e}")
+            
+            st.divider()
 
+            # Feedback/bug report
             st.markdown("<h3 style='text-align:center;'>🐞 Feedback/Bug Report</h3>", unsafe_allow_html=True)
             with st.form("bugform", clear_on_submit=True):
                 bug = st.text_area("Tell us what went wrong or how we can improve.", height=100)
@@ -414,7 +490,6 @@ class StreamlitApp:
 
             st.markdown("<div class='ca-footer'>⚡ Powered by Casa Amigo © 2025</div>", unsafe_allow_html=True)
 
-    # chat handling
     def _display_chat_history(self):
         for msg in st.session_state["messages"]:
             role = msg["role"]
@@ -425,182 +500,139 @@ class StreamlitApp:
             with st.chat_message(role, avatar=avatar):
                 st.markdown(f'<div class="ca-bubble {bubble_class}">{content}</div>', unsafe_allow_html=True)
 
-    def _handle_user_input(self):
-        # Create a container that will be fixed at the bottom
-        input_container = st.container()
-        
-        with input_container:
-            # Create columns for text input and voice button
-            cols = st.columns([20, 1])
-            
-            with cols[0]:
-                # Use text_input instead of chat_input, with a unique key that changes
-                # This allows us to clear it after submission
-                if "input_key" not in st.session_state:
-                    st.session_state["input_key"] = 0
-                
-                text_query = st.text_input(
-                    "Message",
-                    key=f"text_input_{st.session_state['input_key']}",
-                    label_visibility="collapsed",
-                    placeholder="Type your message or use voice 🎤"
-                )
-            
-            with cols[1]:
-                audio_bytes = audiorecorder("🎤", "⏹️", key="audio_recorder")
-        
-        user_query = None
-        
-        # Handle voice input
-        if audio_bytes and len(audio_bytes) > 0:
-            print(f"[APP] Audio received: {len(audio_bytes)} bytes")
-            
-            with st.spinner("🎤 Transcribing your message..."):
-                user_query = self.voice_manager.transcribe_audio(audio_bytes)
-            
-            if not user_query:
-                st.error("Could not transcribe audio. Please try again.")
-                return
-        
-        # Handle text input (when user presses Enter)
-        elif text_query and text_query.strip():
-            user_query = text_query
-            # Increment key to clear the input after processing
-            st.session_state["input_key"] += 1
+    def _process_query(self, user_query: str):
+        """Process a user query (from text or voice)"""
+        print(f"[APP] Moderating user input: {user_query[:50]}...")
+        moderation_result = moderate_content(user_query, self.config_manager.api_key)
 
-        if user_query:
-            print(f"[APP] Moderating user input: {user_query[:50]}...")
-            moderation_result = moderate_content(user_query, self.config_manager.api_key)
+        if not moderation_result["is_safe"]:
+            flagged_cats = moderation_result["flagged_categories"]
+            print(f"[APP] Content flagged: {flagged_cats}")
 
-            if not moderation_result["is_safe"]:
-                # Content was flagged - show warning and don't process
-                flagged_cats = moderation_result["flagged_categories"]
-                print(f"[APP] Content flagged: {flagged_cats}")
+            warning_msg = get_moderation_message(flagged_cats)
 
-                warning_msg = get_moderation_message(flagged_cats)
-
-                # Show user message (so they see what they typed)
-                st.session_state["messages"].append({"role": "user", "content": user_query})
-                with st.chat_message("user", avatar=self.user_icon):
-                    st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
-
-                # Show moderation warning
-                warning_response = (
-                    f"⚠️ {warning_msg}\n\n"
-                    "Please rephrase your message to comply with our community guidelines. "
-                    "Casa Amigo is here to help with rental-related questions in a respectful manner."
-                )
-
-                with st.chat_message("assistant", avatar=self.idle_icon):
-                    st.markdown(f'<div class="ca-bubble ca-assist">{warning_response}</div>', unsafe_allow_html=True)
-
-                st.session_state["messages"].append({"role": "assistant", "content": warning_response})
-
-                # Log the incident (for your records/demo)
-                if "moderation_flags" not in st.session_state:
-                    st.session_state["moderation_flags"] = []
-                st.session_state["moderation_flags"].append({
-                    "timestamp": time.time(),
-                    "query": user_query,
-                    "categories": flagged_cats
-                })
-
-                st.rerun()
-                return
-
-            # Content is safe - Continue with normal flow
-            print(f"[APP] Content passed moderation")
-
-            # user message
+            # Show user message
             st.session_state["messages"].append({"role": "user", "content": user_query})
             with st.chat_message("user", avatar=self.user_icon):
                 st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
 
-            # assistant thinking + reply via CasaAmigoAgent.chat()
-            with st.chat_message("assistant", avatar=self.thinking_icon):
-                placeholder = st.empty()
-                for _ in range(3):
-                    dots_html = "<span class='ca-dot'></span>" * 3
-                    placeholder.markdown(f"<div class='ca-typing'>{dots_html}</div>", unsafe_allow_html=True)
-                    time.sleep(0.35)
+            # Show moderation warning
+            warning_response = (
+                f"⚠️ {warning_msg}\n\n"
+                "Please rephrase your message to comply with our community guidelines. "
+                "Casa Amigo is here to help with rental-related questions in a respectful manner."
+            )
 
-                try:
-                    auth = st.session_state.get("auth", {})
-                    print(f"[APP] Auth state: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}, logged_in={auth.get('logged_in')}")
-                    set_current_auth(auth)
-                    response = self.chatbot.chat(user_query, auth=auth)
+            with st.chat_message("assistant", avatar=self.idle_icon):
+                st.markdown(f'<div class="ca-bubble ca-assist">{warning_response}</div>', unsafe_allow_html=True)
 
-                    # Moderate assistant response
-                    print(f"[APP] Moderating assistant response")
-                    response_mod = moderate_content(response, self.config_manager.api_key)
+            st.session_state["messages"].append({"role": "assistant", "content": warning_response})
 
-                    if not response_mod["is_safe"]:
-                        print(f"[APP] WARNING: Assistant response was flagged: {response_mod['flagged_categories']}")
-                        response = (
-                            "I apologize, but I need to rephrase my response. "
-                            "Let me try again with a different approach."
-                        )
+            if "moderation_flags" not in st.session_state:
+                st.session_state["moderation_flags"] = []
+            st.session_state["moderation_flags"].append({
+                "timestamp": time.time(),
+                "query": user_query,
+                "categories": flagged_cats
+            })
 
-                except Exception as e:
-                    response = "⚠️ Sorry, something went wrong. Please try again."
-                    st.toast(f"Backend error: {e}")
+            return
 
-                placeholder.markdown(f"<div class='ca-bubble ca-assist'>{response}</div>", unsafe_allow_html=True)
-                
-                # Generate voice response if enabled
-                if st.session_state.get("voice_enabled", False):
-                    with st.spinner("🔊 Generating voice response..."):
-                        voice = st.session_state.get("tts_voice", "nova")
-                        audio_response = self.voice_manager.text_to_speech(response, voice=voice)
-                        
-                        if audio_response:
-                            st.audio(audio_response, format="audio/mp3", autoplay=False)
-                        else:
-                            st.caption("⚠️ Voice generation failed")
+        # Content is safe - Continue with normal flow
+        print(f"[APP] Content passed moderation")
 
-                # debug expander
-                if self.config_manager.get_debug_mode():
-                    with st.sidebar.expander("🔎 Debug (last turn)", expanded=False):
-                        st.write("**Input Moderation:**")
-                        if moderation_result.get("error"):
-                            st.warning(f"Moderation error: {moderation_result['error']}")
-                        else:
-                            st.write(f"✅ Safe: {moderation_result['is_safe']}")
-                            if moderation_result['flagged_categories']:
-                                st.write(f"⚠️ Flagged: {', '.join(moderation_result['flagged_categories'])}")
-                        
-                        logs = consume_debug_log()
-                        if not logs:
-                            st.caption("No tool logs yet.")
-                        else:
-                            for row in logs:
-                                if row["event"] == "tool_called":
-                                    st.write(f"**Tool:** `{row['tool']}`")
-                                    st.code(row["args"])
-                                elif row["event"] == "retrieval":
-                                    st.write(f"**retrieved_k:** {row['retrieved_k']}")
-                                    top = row.get("top", [])
-                                    if top:
-                                        st.write("**Top-3:**")
-                                        for t in top:
-                                            st.write(f"- #{t['rank']} — score={t['score']} — {t['label']}")
-                                elif row["event"] == "tool_error":
-                                    st.error(f"{row['tool']} error: {row['error']}")
+        # user message
+        st.session_state["messages"].append({"role": "user", "content": user_query})
+        with st.chat_message("user", avatar=self.user_icon):
+            st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
 
-                        calls = self.chatbot.get_tool_calls() if hasattr(self.chatbot, "get_tool_calls") else []
-                        if calls:
-                            st.markdown("---")
-                            st.write("**Agent tool calls**")
-                            for c in calls:
-                                st.write(f"- #{c['i']} **{c['name']}**")
-                                st.code(c["args"])
-                        else:
-                            st.caption("No agent tool calls recorded.")
+        # assistant thinking + reply
+        with st.chat_message("assistant", avatar=self.thinking_icon):
+            placeholder = st.empty()
+            for _ in range(3):
+                dots_html = "<span class='ca-dot'></span>" * 3
+                placeholder.markdown(f"<div class='ca-typing'>{dots_html}</div>", unsafe_allow_html=True)
+                time.sleep(0.35)
 
-            # persist assistant message
-            st.session_state["messages"].append({"role": "assistant", "content": response})
+            try:
+                auth = st.session_state.get("auth", {})
+                print(f"[APP] Auth state: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}, logged_in={auth.get('logged_in')}")
+                set_current_auth(auth)
+                response = self.chatbot.chat(user_query, auth=auth)
+
+                # Moderate assistant response
+                print(f"[APP] Moderating assistant response")
+                response_mod = moderate_content(response, self.config_manager.api_key)
+
+                if not response_mod["is_safe"]:
+                    print(f"[APP] WARNING: Assistant response was flagged: {response_mod['flagged_categories']}")
+                    response = (
+                        "I apologize, but I need to rephrase my response. "
+                        "Let me try again with a different approach."
+                    )
+
+            except Exception as e:
+                response = "⚠️ Sorry, something went wrong. Please try again."
+                st.toast(f"Backend error: {e}")
+
+            placeholder.markdown(f"<div class='ca-bubble ca-assist'>{response}</div>", unsafe_allow_html=True)
             
-            # Rerun to clear the input and show the new message
+            # Voice responses are removed - keeping interface clean and simple
+
+            # debug expander
+            if self.config_manager.get_debug_mode():
+                with st.sidebar.expander("🔎 Debug (last turn)", expanded=False):
+                    st.write("**Input Moderation:**")
+                    if moderation_result.get("error"):
+                        st.warning(f"Moderation error: {moderation_result['error']}")
+                    else:
+                        st.write(f"✅ Safe: {moderation_result['is_safe']}")
+                        if moderation_result['flagged_categories']:
+                            st.write(f"⚠️ Flagged: {', '.join(moderation_result['flagged_categories'])}")
+                    
+                    logs = consume_debug_log()
+                    if not logs:
+                        st.caption("No tool logs yet.")
+                    else:
+                        for row in logs:
+                            if row["event"] == "tool_called":
+                                st.write(f"**Tool:** `{row['tool']}`")
+                                st.code(row["args"])
+                            elif row["event"] == "retrieval":
+                                st.write(f"**retrieved_k:** {row['retrieved_k']}")
+                                top = row.get("top", [])
+                                if top:
+                                    st.write("**Top-3:**")
+                                    for t in top:
+                                        st.write(f"- #{t['rank']} — score={t['score']} — {t['label']}")
+                            elif row["event"] == "tool_error":
+                                st.error(f"{row['tool']} error: {row['error']}")
+
+                    calls = self.chatbot.get_tool_calls() if hasattr(self.chatbot, "get_tool_calls") else []
+                    if calls:
+                        st.markdown("---")
+                        st.write("**Agent tool calls**")
+                        for c in calls:
+                            st.write(f"- #{c['i']} **{c['name']}**")
+                            st.code(c["args"])
+                    else:
+                        st.caption("No agent tool calls recorded.")
+
+        # persist assistant message
+        st.session_state["messages"].append({"role": "assistant", "content": response})
+
+    def _handle_user_input(self):
+        # Check for pending voice query from sidebar
+        if st.session_state.get("pending_voice_query"):
+            query = st.session_state["pending_voice_query"]
+            st.session_state["pending_voice_query"] = None  # Clear it
+            self._process_query(query)
+            st.rerun()
+            return
+        
+        # Handle text input
+        if user_query := st.chat_input("Type your message..."):
+            self._process_query(user_query)
             st.rerun()
 
         # footer below chat box
@@ -608,25 +640,11 @@ class StreamlitApp:
             "<div class='ca-main-footer'>⚡ Powered by <b>Casa Amigo</b> © 2025 — Simplifying rentals, one chat at a time.</div>",
             unsafe_allow_html=True,
         )
-    # main run
+
     def run(self):
         self._render_sidebar()
-
-        # tabs: Tenant (chat) | Agent (placeholder) 
-        #tenant_tab, agent_tab = st.tabs(["👤 Tenant", "🧑‍💼 Agent"])
-
-       # with tenant_tab:
         self._display_chat_history()
         self._handle_user_input()
-
-        # with agent_tab:
-        #    st.subheader("Agent (preview)")
-        #    st.caption("This is a read-only placeholder.")
-        #    st.markdown(
-        #       "- (coming soon)\n"
-        #       "- (coming soon)\n"
-        #       "- (coming soon)"
-        #    )
 
 
 if __name__ == "__main__":
