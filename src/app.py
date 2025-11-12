@@ -144,6 +144,21 @@ class StreamlitApp:
                 color: #fff !important;
             }}
 
+            /* Inputs: light box + black text */
+            div[data-testid="stExpander"] input {{
+                background: #fff !important;
+                border: 1px solid rgba(255,255,255,0.6) !important;
+                border-radius: 8px !important;
+                color: #000 !important;               /* black text */
+                font-size: 0.9rem !important;
+                padding: 0.4rem 0.6rem !important;
+            }}
+            div[data-testid="stExpander"] input:focus {{
+                outline: none !important;
+                border: 1px solid {self.RED} !important; /* Casa Amigo red */
+                box-shadow: 0 0 5px rgba(216,67,57,0.3) !important;
+            }}
+            
             /* Buttons */
             div[data-testid="stExpander"] .stButton > button {{
                 border: none !important;
@@ -411,73 +426,77 @@ class StreamlitApp:
                 st.markdown(f'<div class="ca-bubble {bubble_class}">{content}</div>', unsafe_allow_html=True)
 
     def _handle_user_input(self):
-        """Handle user input with clean WhatsApp-style UX"""
-        
-        # Initialize session state for audio tracking
-        if "last_audio_length" not in st.session_state:
-            st.session_state["last_audio_length"] = 0
-        
         # Create a container that will be fixed at the bottom
         input_container = st.container()
         
         with input_container:
-            # Use columns: wide for text input, narrow for mic button
-            col_text, col_mic = st.columns([19, 1])
+            # Create columns for text input and voice button
+            cols = st.columns([20, 1])
             
-            with col_text:
-                text_query = st.chat_input("Type your message...")
+            with cols[0]:
+                # Use text_input instead of chat_input, with a unique key that changes
+                # This allows us to clear it after submission
+                if "input_key" not in st.session_state:
+                    st.session_state["input_key"] = 0
+                
+                text_query = st.text_input(
+                    "Message",
+                    key=f"text_input_{st.session_state['input_key']}",
+                    label_visibility="collapsed",
+                    placeholder="Type your message or use voice 🎤"
+                )
             
-            with col_mic:
+            with cols[1]:
                 audio_bytes = audiorecorder("🎤", "⏹️", key="audio_recorder")
         
         user_query = None
         
-        # Handle voice input - only process if it's NEW audio
-        current_audio_length = len(audio_bytes) if audio_bytes else 0
-        
-        if audio_bytes and current_audio_length > 0 and current_audio_length != st.session_state["last_audio_length"]:
-            print(f"[APP] New audio received: {current_audio_length} bytes")
-            
-            # Update the last audio length to prevent reprocessing
-            st.session_state["last_audio_length"] = current_audio_length
+        # Handle voice input
+        if audio_bytes and len(audio_bytes) > 0:
+            print(f"[APP] Audio received: {len(audio_bytes)} bytes")
             
             with st.spinner("🎤 Transcribing your message..."):
                 user_query = self.voice_manager.transcribe_audio(audio_bytes)
             
             if not user_query:
-                st.error("❌ Could not transcribe audio. Please try again.")
+                st.error("Could not transcribe audio. Please try again.")
                 return
-            
-        elif text_query:
+        
+        # Handle text input (when user presses Enter)
+        elif text_query and text_query.strip():
             user_query = text_query
-            # Reset audio tracking when text is used
-            st.session_state["last_audio_length"] = 0
+            # Increment key to clear the input after processing
+            st.session_state["input_key"] += 1
 
         if user_query:
             print(f"[APP] Moderating user input: {user_query[:50]}...")
             moderation_result = moderate_content(user_query, self.config_manager.api_key)
-            
+
             if not moderation_result["is_safe"]:
+                # Content was flagged - show warning and don't process
                 flagged_cats = moderation_result["flagged_categories"]
                 print(f"[APP] Content flagged: {flagged_cats}")
-                
+
                 warning_msg = get_moderation_message(flagged_cats)
-                
+
+                # Show user message (so they see what they typed)
                 st.session_state["messages"].append({"role": "user", "content": user_query})
                 with st.chat_message("user", avatar=self.user_icon):
                     st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
-                
+
+                # Show moderation warning
                 warning_response = (
                     f"⚠️ {warning_msg}\n\n"
                     "Please rephrase your message to comply with our community guidelines. "
                     "Casa Amigo is here to help with rental-related questions in a respectful manner."
                 )
-                
+
                 with st.chat_message("assistant", avatar=self.idle_icon):
                     st.markdown(f'<div class="ca-bubble ca-assist">{warning_response}</div>', unsafe_allow_html=True)
-                
+
                 st.session_state["messages"].append({"role": "assistant", "content": warning_response})
-                
+
+                # Log the incident (for your records/demo)
                 if "moderation_flags" not in st.session_state:
                     st.session_state["moderation_flags"] = []
                 st.session_state["moderation_flags"].append({
@@ -485,15 +504,19 @@ class StreamlitApp:
                     "query": user_query,
                     "categories": flagged_cats
                 })
-                
+
+                st.rerun()
                 return
-            
+
+            # Content is safe - Continue with normal flow
             print(f"[APP] Content passed moderation")
-            
+
+            # user message
             st.session_state["messages"].append({"role": "user", "content": user_query})
             with st.chat_message("user", avatar=self.user_icon):
                 st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
 
+            # assistant thinking + reply via CasaAmigoAgent.chat()
             with st.chat_message("assistant", avatar=self.thinking_icon):
                 placeholder = st.empty()
                 for _ in range(3):
@@ -506,17 +529,18 @@ class StreamlitApp:
                     print(f"[APP] Auth state: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}, logged_in={auth.get('logged_in')}")
                     set_current_auth(auth)
                     response = self.chatbot.chat(user_query, auth=auth)
-                    
+
+                    # Moderate assistant response
                     print(f"[APP] Moderating assistant response")
                     response_mod = moderate_content(response, self.config_manager.api_key)
-                    
+
                     if not response_mod["is_safe"]:
                         print(f"[APP] WARNING: Assistant response was flagged: {response_mod['flagged_categories']}")
                         response = (
                             "I apologize, but I need to rephrase my response. "
                             "Let me try again with a different approach."
                         )
-                    
+
                 except Exception as e:
                     response = "⚠️ Sorry, something went wrong. Please try again."
                     st.toast(f"Backend error: {e}")
@@ -573,8 +597,13 @@ class StreamlitApp:
                         else:
                             st.caption("No agent tool calls recorded.")
 
+            # persist assistant message
             st.session_state["messages"].append({"role": "assistant", "content": response})
+            
+            # Rerun to clear the input and show the new message
+            st.rerun()
 
+        # footer below chat box
         st.markdown(
             "<div class='ca-main-footer'>⚡ Powered by <b>Casa Amigo</b> © 2025 — Simplifying rentals, one chat at a time.</div>",
             unsafe_allow_html=True,
