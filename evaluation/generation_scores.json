@@ -1,0 +1,274 @@
+{
+  "summary": {
+    "n_questions": 20,
+    "rouge1_f": 0.484326539309116,
+    "rougeL_f": 0.41858645817969037,
+    "bleu1": 0.42079508869834337,
+    "bert_f1": 0.9030691385269165,
+    "exact_match": 0.0,
+    "avg_answer_len_tokens": 32.1,
+    "len_ratio": 0.7817970255210516
+  },
+  "by_difficulty": [
+    {
+      "difficulty": "easy",
+      "n": 7,
+      "rouge1_f": 0.6261516956871171,
+      "rougeL_f": 0.5838198111813726
+    },
+    {
+      "difficulty": "medium",
+      "n": 9,
+      "rouge1_f": 0.4183003173387282,
+      "rougeL_f": 0.34442189764696557
+    },
+    {
+      "difficulty": "hard",
+      "n": 4,
+      "rouge1_f": 0.38469151508098676,
+      "rougeL_f": 0.2962983516253773
+    }
+  ],
+  "per_question": [
+    {
+      "id": "q001",
+      "category": "payment",
+      "difficulty": "easy",
+      "rouge1_f": 0.5,
+      "rougeL_f": 0.5,
+      "bleu1": 0.36000000000000004,
+      "exact_match": 0.0,
+      "len_ref": 25,
+      "len_hyp": 11,
+      "answer": "Rent is due on the 22nd day of each calendar month."
+    },
+    {
+      "id": "q002",
+      "category": "security_deposit",
+      "difficulty": "medium",
+      "rouge1_f": 0.6538461538461539,
+      "rougeL_f": 0.5384615384615384,
+      "bleu1": 0.6296296296296297,
+      "exact_match": 0.0,
+      "len_ref": 50,
+      "len_hyp": 54,
+      "answer": "The security deposit is S$15,000, which is equivalent to 2 months' rental. If there are no breaches of the agreement, the balance of the security deposit after deductions for any necessary repairs or damages will be refunded to the Tenant within fourteen (14) days from the expiry or termination of the Agreement."
+    },
+    {
+      "id": "q003",
+      "category": "utilities",
+      "difficulty": "easy",
+      "rouge1_f": 0.7692307692307692,
+      "rougeL_f": 0.7384615384615385,
+      "bleu1": 0.6578947368421053,
+      "exact_match": 0.0,
+      "len_ref": 27,
+      "len_hyp": 38,
+      "answer": "The Tenant is responsible for paying all charges due in respect of any telephone, supply of water, electricity, gas, and any water-borne sewerage system and/or other equipment installed at the Premises, including any tax payable thereon."
+    },
+    {
+      "id": "q004",
+      "category": "maintenance",
+      "difficulty": "medium",
+      "rouge1_f": 0.208955223880597,
+      "rougeL_f": 0.14925373134328357,
+      "bleu1": 0.11666666666666667,
+      "exact_match": 0.0,
+      "len_ref": 60,
+      "len_hyp": 7,
+      "answer": "The defect-free period is 30 days."
+    },
+    {
+      "id": "q005",
+      "category": "maintenance",
+      "difficulty": "easy",
+      "rouge1_f": 0.7200000000000001,
+      "rougeL_f": 0.7200000000000001,
+      "bleu1": 0.6428571428571429,
+      "exact_match": 0.0,
+      "len_ref": 14,
+      "len_hyp": 11,
+      "answer": "The Tenant replaces electric bulbs and tubes at their own expense."
+    },
+    {
+      "id": "q006",
+      "category": "repairs",
+      "difficulty": "medium",
+      "rouge1_f": 0.26666666666666666,
+      "rougeL_f": 0.2222222222222222,
+      "bleu1": 0.2,
+      "exact_match": 0.0,
+      "len_ref": 30,
+      "len_hyp": 15,
+      "answer": "The Tenant would be responsible for paying for repairs if something costs $150 to fix."
+    },
+    {
+      "id": "q007",
+      "category": "repairs",
+      "difficulty": "medium",
+      "rouge1_f": 0.7524752475247525,
+      "rougeL_f": 0.693069306930693,
+      "bleu1": 0.7169811320754716,
+      "exact_match": 0.0,
+      "len_ref": 48,
+      "len_hyp": 53,
+      "answer": "If a repair costs more than $200, the initial $200 will be borne by the Tenant and the excess will be borne by the Landlord. The Landlord's approval must be obtained before carrying out any repair exceeding $200, and the Landlord reserves the right to engage their own contractor for such repairs."
+    },
+    {
+      "id": "q008",
+      "category": "aircon",
+      "difficulty": "medium",
+      "rouge1_f": 0.48,
+      "rougeL_f": 0.39999999999999997,
+      "bleu1": 0.339622641509434,
+      "exact_match": 0.0,
+      "len_ref": 53,
+      "len_hyp": 22,
+      "answer": "The air conditioning should be serviced every three months, and the cost of the service is to be borne by the Landlord."
+    },
+    {
+      "id": "q009",
+      "category": "alterations",
+      "difficulty": "easy",
+      "rouge1_f": 0.8,
+      "rougeL_f": 0.7578947368421052,
+      "bleu1": 0.7169811320754716,
+      "exact_match": 0.0,
+      "len_ref": 42,
+      "len_hyp": 53,
+      "answer": "Not to carry out or permit or suffer to be carried out alterations, additions, drilling, hacking or any changes of whatsoever nature to the Premises without the prior written consent of the Landlord. The Tenant shall make good such alterations at his own cost and/or expense at the request of the Landlord."
+    },
+    {
+      "id": "q010",
+      "category": "access",
+      "difficulty": "medium",
+      "rouge1_f": 0.5862068965517241,
+      "rougeL_f": 0.4827586206896552,
+      "bleu1": 0.5000000000000001,
+      "exact_match": 0.0,
+      "len_ref": 34,
+      "len_hyp": 24,
+      "answer": "The landlord can enter your apartment for repairs with all necessary appliances at reasonable times by prior appointment mutually agreed upon by both parties."
+    },
+    {
+      "id": "q011",
+      "category": "subletting",
+      "difficulty": "easy",
+      "rouge1_f": 0.626865671641791,
+      "rougeL_f": 0.5970149253731343,
+      "bleu1": 0.5833333333333334,
+      "exact_match": 0.0,
+      "len_ref": 36,
+      "len_hyp": 31,
+      "answer": "Subletting the apartment is allowed with the prior written consent of the Landlord, which should not be unreasonably withheld, especially if the subletter is a respectable or reputable person or corporation."
+    },
+    {
+      "id": "q012",
+      "category": "pets",
+      "difficulty": "easy",
+      "rouge1_f": 0.676056338028169,
+      "rougeL_f": 0.591549295774648,
+      "bleu1": 0.6666666666666666,
+      "exact_match": 0.0,
+      "len_ref": 36,
+      "len_hyp": 35,
+      "answer": "You are allowed to keep pets in the Premises if you obtain the prior written permission of the Landlord and comply with any conditions imposed by the Landlord in the event such permission is granted."
+    },
+    {
+      "id": "q013",
+      "category": "rent_payment",
+      "difficulty": "hard",
+      "rouge1_f": 0.5937499999999999,
+      "rougeL_f": 0.515625,
+      "bleu1": 0.5352112676056338,
+      "exact_match": 0.0,
+      "len_ref": 71,
+      "len_hyp": 57,
+      "answer": "If the rent remains unpaid for 7 days after becoming payable, the landlord can claim an interest at 10% on an annual basis on the amount unpaid. Additionally, if the rent is not paid and there is a default by the tenant, the landlord has the right to re-enter the premises and terminate the tenancy agreement."
+    },
+    {
+      "id": "q014",
+      "category": "diplomatic_clause",
+      "difficulty": "hard",
+      "rouge1_f": 0.21359223300970875,
+      "rougeL_f": 0.17475728155339804,
+      "bleu1": 0.14102564102564105,
+      "exact_match": 0.0,
+      "len_ref": 78,
+      "len_hyp": 25,
+      "answer": "You can terminate the lease early with a 2 months' notice and forfeiture of the security deposit, as per the special clause in the agreement."
+    },
+    {
+      "id": "q015",
+      "category": "occupiers",
+      "difficulty": "medium",
+      "rouge1_f": 0.3235294117647059,
+      "rougeL_f": 0.23529411764705882,
+      "bleu1": 0.28205128205128205,
+      "exact_match": 0.0,
+      "len_ref": 29,
+      "len_hyp": 39,
+      "answer": "You are required to inform the Landlord of any visitors staying in the house from time to time. Additionally, you should ensure that the number of Tenants and occupiers does not exceed the maximum occupants allowed by the authorities."
+    },
+    {
+      "id": "q016",
+      "category": "move_out",
+      "difficulty": "medium",
+      "rouge1_f": 0.39999999999999997,
+      "rougeL_f": 0.28571428571428575,
+      "bleu1": 0.38888888888888884,
+      "exact_match": 0.0,
+      "len_ref": 54,
+      "len_hyp": 51,
+      "answer": "When moving out, you need to peaceably and quietly deliver up the premises in like condition as when it was delivered to you, except for fair wear and tear. You are not required to repaint the walls and ceiling unless it is necessary due to damage beyond fair wear and tear."
+    },
+    {
+      "id": "q017",
+      "category": "property_tax",
+      "difficulty": "easy",
+      "rouge1_f": 0.2909090909090909,
+      "rougeL_f": 0.1818181818181818,
+      "bleu1": 0.26666666666666666,
+      "exact_match": 0.0,
+      "len_ref": 25,
+      "len_hyp": 30,
+      "answer": "The Tenant is responsible for paying all charges due in respect of any telephone, supply of water, electricity, gas, and any water-borne sewerage system, including any tax payable thereon."
+    },
+    {
+      "id": "q018",
+      "category": "insurance",
+      "difficulty": "medium",
+      "rouge1_f": 0.09302325581395349,
+      "rougeL_f": 0.09302325581395349,
+      "bleu1": 0.05405405405405406,
+      "exact_match": 0.0,
+      "len_ref": 37,
+      "len_hyp": 6,
+      "answer": "The Tenant is responsible for insurance."
+    },
+    {
+      "id": "q019",
+      "category": "walls_ceiling",
+      "difficulty": "hard",
+      "rouge1_f": 0.2465753424657534,
+      "rougeL_f": 0.19178082191780824,
+      "bleu1": 0.16666666666666666,
+      "exact_match": 0.0,
+      "len_ref": 54,
+      "len_hyp": 19,
+      "answer": "You can hang picture frames on the walls as long as you obtain the written consent of the landlord."
+    },
+    {
+      "id": "q020",
+      "category": "renewal",
+      "difficulty": "hard",
+      "rouge1_f": 0.48484848484848486,
+      "rougeL_f": 0.30303030303030304,
+      "bleu1": 0.4507042253521127,
+      "exact_match": 0.0,
+      "len_ref": 71,
+      "len_hyp": 61,
+      "answer": "You can renew your lease after it expires, provided that you make a written request to the Landlord at least 2 calendar months before the expiry of the tenancy. Additionally, there should not have been any breach or non-observance of any of the terms and conditions by you during the term of the tenancy for the renewal to be granted."
+    }
+  ]
+}
