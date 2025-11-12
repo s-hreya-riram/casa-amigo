@@ -71,3 +71,7 @@ streamlit-audiorecorder
 SpeechRecognition
 pydub
 gTTS
+
+# Evaluation
+rouge-score
+PyPDF2

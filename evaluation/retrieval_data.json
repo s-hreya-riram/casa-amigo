@@ -1,0 +1,270 @@
+{
+  "version": "1.0",
+  "created_date": "2025-11-12",
+  "description": "Retrieval evaluation dataset for tenancy agreement embedding retrieval (MRR, Top-k, multilingual benchmark)",
+  "source_document": "Track_B_Tenancy_Agreement.pdf",
+  "metadata": {
+    "tenancy_agreement_id": "52532e02-2bce-4b97-bc31-c097c24ef44f",
+    "total_queries": 30,
+    "evaluation_metrics": ["MRR", "Top-1 Accuracy", "Top-3 Accuracy"]
+  },
+  "retrieval_queries": [
+    {
+      "id": "r001",
+      "query": "When is rent due?",
+      "relevant_chunks": [
+        {"clause_label": "1", "clause_title": "Rent"},
+        {"clause_label": "2(a)", "clause_title": "Rent"}
+      ],
+      "primary_chunk": {"clause_label": "2(a)", "clause_title": "Rent"}
+    },
+    {
+      "id": "r002",
+      "query": "What is the security deposit amount?",
+      "relevant_chunks": [
+        {"clause_label": "2(b)", "clause_title": "Security Deposit"}
+      ],
+      "primary_chunk": {"clause_label": "2(b)", "clause_title": "Security Deposit"}
+    },
+    {
+      "id": "r003",
+      "query": "Who pays for electricity bills?",
+      "relevant_chunks": [
+        {"clause_label": "2(c)", "clause_title": "Payment Of Outgoings"}
+      ],
+      "primary_chunk": {"clause_label": "2(c)", "clause_title": "Payment Of Outgoings"}
+    },
+    {
+      "id": "r004",
+      "query": "What is the defect-free period?",
+      "relevant_chunks": [
+        {"clause_label": "2(d)", "clause_title": "Defect Free Period"}
+      ],
+      "primary_chunk": {"clause_label": "2(d)", "clause_title": "Defect Free Period"}
+    },
+    {
+      "id": "r005",
+      "query": "Can I make alterations to the apartment?",
+      "relevant_chunks": [
+        {"clause_label": "2(l)", "clause_title": "No Unauthorised Alterations"},
+        {"clause_label": "2(z)", "clause_title": "Hanging Of Picture Frame"}
+      ],
+      "primary_chunk": {"clause_label": "2(l)", "clause_title": "No Unauthorised Alterations"}
+    },
+    {
+      "id": "r006",
+      "query": "How often should aircon be serviced?",
+      "relevant_chunks": [
+        {"clause_label": "2(j)", "clause_title": "Service Of Aircon"},
+        {"clause_label": "2(k)", "clause_title": "Maintenance Of Aircon"}
+      ],
+      "primary_chunk": {"clause_label": "2(j)", "clause_title": "Service Of Aircon"}
+    },
+    {
+      "id": "r007",
+      "query": "Who replaces light bulbs?",
+      "relevant_chunks": [
+        {"clause_label": "2(f)", "clause_title": "Replacement Of Bulbs"}
+      ],
+      "primary_chunk": {"clause_label": "2(f)", "clause_title": "Replacement Of Bulbs"}
+    },
+    {
+      "id": "r008",
+      "query": "What happens if repair costs more than $200?",
+      "relevant_chunks": [
+        {"clause_label": "2(g)", "clause_title": "Replacement Of Items"},
+        {"clause_label": "2(i)", "clause_title": "Minor Repairs"}
+      ],
+      "primary_chunk": {"clause_label": "2(g)", "clause_title": "Replacement Of Items"}
+    },
+    {
+      "id": "r009",
+      "query": "Can the landlord enter my unit?",
+      "relevant_chunks": [
+        {"clause_label": "2(m)", "clause_title": "Access For Repairs"},
+        {"clause_label": "2(n)", "clause_title": "Access To Viewing (New Tenant)"},
+        {"clause_label": "2(o)", "clause_title": "Access To Viewing (Potential Purchaser)"}
+      ],
+      "primary_chunk": {"clause_label": "2(m)", "clause_title": "Access For Repairs"}
+    },
+    {
+      "id": "r010",
+      "query": "Am I allowed to sublet?",
+      "relevant_chunks": [
+        {"clause_label": "2(p)", "clause_title": "Assignment/Subletting"}
+      ],
+      "primary_chunk": {"clause_label": "2(p)", "clause_title": "Assignment/Subletting"}
+    },
+    {
+      "id": "r011",
+      "query": "Can I keep a dog in the apartment?",
+      "relevant_chunks": [
+        {"clause_label": "2(w)", "clause_title": "Pets"}
+      ],
+      "primary_chunk": {"clause_label": "2(w)", "clause_title": "Pets"}
+    },
+    {
+      "id": "r012",
+      "query": "What if I pay rent 10 days late?",
+      "relevant_chunks": [
+        {"clause_label": "5(a)", "clause_title": "Default Of Tenant"},
+        {"clause_label": "5(b)", "clause_title": "Interest For Rent Arrears"}
+      ],
+      "primary_chunk": {"clause_label": "5(b)", "clause_title": "Interest For Rent Arrears"}
+    },
+    {
+      "id": "r013",
+      "query": "Can I terminate lease if I get transferred overseas?",
+      "relevant_chunks": [
+        {"clause_label": "5(c)", "clause_title": "Diplomatic Clause"}
+      ],
+      "primary_chunk": {"clause_label": "5(c)", "clause_title": "Diplomatic Clause"}
+    },
+    {
+      "id": "r014",
+      "query": "Who is responsible for property tax?",
+      "relevant_chunks": [
+        {"clause_label": "4(b)", "clause_title": "Payment Of Property Tax"}
+      ],
+      "primary_chunk": {"clause_label": "4(b)", "clause_title": "Payment Of Property Tax"}
+    },
+    {
+      "id": "r015",
+      "query": "Do I need insurance for my belongings?",
+      "relevant_chunks": [
+        {"clause_label": "2(u)", "clause_title": "Tenant's Insurance"},
+        {"clause_label": "4(d)", "clause_title": "Fire Insurance"}
+      ],
+      "primary_chunk": {"clause_label": "2(u)", "clause_title": "Tenant's Insurance"}
+    },
+    {
+      "id": "r016",
+      "query": "Can I have guests stay for a month?",
+      "relevant_chunks": [
+        {"clause_label": "2(v)", "clause_title": "Registered Occupiers"}
+      ],
+      "primary_chunk": {"clause_label": "2(v)", "clause_title": "Registered Occupiers"}
+    },
+    {
+      "id": "r017",
+      "query": "What do I need to do when moving out?",
+      "relevant_chunks": [
+        {"clause_label": "2(y)", "clause_title": "Yielding Up"},
+        {"clause_label": "5(o)", "clause_title": "Joint Inspection"}
+      ],
+      "primary_chunk": {"clause_label": "2(y)", "clause_title": "Yielding Up"}
+    },
+    {
+      "id": "r018",
+      "query": "Can I renew my lease after 2 years?",
+      "relevant_chunks": [
+        {"clause_label": "5(f)", "clause_title": "Option To Renew"}
+      ],
+      "primary_chunk": {"clause_label": "5(f)", "clause_title": "Option To Renew"}
+    },
+    {
+      "id": "r019",
+      "query": "Who fixes the water heater if it breaks?",
+      "relevant_chunks": [
+        {"clause_label": "2(i)", "clause_title": "Minor Repairs"},
+        {"clause_label": "4(c)", "clause_title": "Keep Premises In Good Repair"}
+      ],
+      "primary_chunk": {"clause_label": "2(i)", "clause_title": "Minor Repairs"}
+    },
+    {
+      "id": "r020",
+      "query": "Can I paint the walls?",
+      "relevant_chunks": [
+        {"clause_label": "2(l)", "clause_title": "No Unauthorised Alterations"}
+      ],
+      "primary_chunk": {"clause_label": "2(l)", "clause_title": "No Unauthorised Alterations"}
+    },
+    {
+      "id": "r021",
+      "query": "What is the notice period for landlord inspection?",
+      "relevant_chunks": [
+        {"clause_label": "2(m)", "clause_title": "Access For Repairs"},
+        {"clause_label": "2(n)", "clause_title": "Access To Viewing (New Tenant)"}
+      ],
+      "primary_chunk": {"clause_label": "2(m)", "clause_title": "Access For Repairs"}
+    },
+    {
+      "id": "r022",
+      "query": "When will I get my security deposit back?",
+      "relevant_chunks": [
+        {"clause_label": "2(b)", "clause_title": "Security Deposit"}
+      ],
+      "primary_chunk": {"clause_label": "2(b)", "clause_title": "Security Deposit"}
+    },
+    {
+      "id": "r023",
+      "query": "Am I responsible for aircon chemical wash?",
+      "relevant_chunks": [
+        {"clause_label": "2(j)", "clause_title": "Service Of Aircon"},
+        {"clause_label": "2(k)", "clause_title": "Maintenance Of Aircon"}
+      ],
+      "primary_chunk": {"clause_label": "2(j)", "clause_title": "Service Of Aircon"}
+    },
+    {
+      "id": "r024",
+      "query": "What if the apartment becomes unlivable due to fire?",
+      "relevant_chunks": [
+        {"clause_label": "5(g)", "clause_title": "Untenantability Of Premises Leading To Suspension"},
+        {"clause_label": "5(h)", "clause_title": "Untenantability Of Premises Leading To Termination"}
+      ],
+      "primary_chunk": {"clause_label": "5(g)", "clause_title": "Untenantability Of Premises Leading To Suspension"}
+    },
+    {
+      "id": "r025",
+      "query": "Who pays stamp duty?",
+      "relevant_chunks": [
+        {"clause_label": "5(k)", "clause_title": "Stamping"}
+      ],
+      "primary_chunk": {"clause_label": "5(k)", "clause_title": "Stamping"}
+    },
+    {
+      "id": "r026",
+      "query": "What are the tenant's maintenance responsibilities?",
+      "relevant_chunks": [
+        {"clause_label": "2(e)", "clause_title": "Maintenance Of Demised Premises"},
+        {"clause_label": "2(i)", "clause_title": "Minor Repairs"}
+      ],
+      "primary_chunk": {"clause_label": "2(e)", "clause_title": "Maintenance Of Demised Premises"}
+    },
+    {
+      "id": "r027",
+      "query": "What happens in an enbloc sale?",
+      "relevant_chunks": [
+        {"clause_label": "5(i)", "clause_title": "Enbloc Re-Development"}
+      ],
+      "primary_chunk": {"clause_label": "5(i)", "clause_title": "Enbloc Re-Development"}
+    },
+    {
+      "id": "r028",
+      "query": "Do I need to clean the premises before handing over?",
+      "relevant_chunks": [
+        {"clause_label": "2(y)", "clause_title": "Yielding Up"},
+        {"clause_label": "5(o)", "clause_title": "Joint Inspection"}
+      ],
+      "primary_chunk": {"clause_label": "2(y)", "clause_title": "Yielding Up"}
+    },
+    {
+      "id": "r029",
+      "query": "What are valid reasons for eviction?",
+      "relevant_chunks": [
+        {"clause_label": "5(a)", "clause_title": "Default Of Tenant"},
+        {"clause_label": "2(r)", "clause_title": "Use Of Premises"}
+      ],
+      "primary_chunk": {"clause_label": "5(a)", "clause_title": "Default Of Tenant"}
+    },
+    {
+      "id": "r030",
+      "query": "What documents must foreign tenants provide?",
+      "relevant_chunks": [
+        {"clause_label": "2023(a)", "clause_title": null},
+        {"clause_label": "2023(i)", "clause_title": null}
+      ],
+      "primary_chunk": {"clause_label": "2023(a)", "clause_title": null}
+    }
+  ]
+}

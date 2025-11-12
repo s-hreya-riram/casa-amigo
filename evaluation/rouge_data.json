@@ -1,0 +1,156 @@
+{
+  "version": "1.0",
+  "created_date": "2025-11-12",
+  "description": "Property tenancy chatbot evaluation dataset for ROUGE score calculation",
+  "source_document": "Track_B_Tenancy_Agreement.pdf",
+  "metadata": {
+    "total_questions": 20,
+    "difficulty_distribution": {
+      "easy": 8,
+      "medium": 8,
+      "hard": 4
+    }
+  },
+  "qna_pairs": [
+    {
+      "id": "q001",
+      "category": "payment",
+      "difficulty": "easy",
+      "question": "When is rent due each month?",
+      "reference_answer": "The monthly rent shall be paid in advance on or before the 22nd day of each calendar month without demand and clear of all deductions."
+    },
+    {
+      "id": "q002",
+      "category": "security_deposit",
+      "difficulty": "medium",
+      "question": "How much is the security deposit and when will I get it back?",
+      "reference_answer": "The security deposit is equivalent to 2 months rental and is paid upon signing the tenancy agreement. The balance after any deductions shall be refunded without interest within fourteen days from the expiry or termination of the agreement. The security deposit cannot be used to set off any rent payable."
+    },
+    {
+      "id": "q003",
+      "category": "utilities",
+      "difficulty": "easy",
+      "question": "Who pays for utilities like water and electricity?",
+      "reference_answer": "The tenant shall pay all charges for telephone, water, electricity, gas, water-borne sewerage system and other equipment installed at the premises, including any tax payable thereon."
+    },
+    {
+      "id": "q004",
+      "category": "maintenance",
+      "difficulty": "medium",
+      "question": "What is the defect-free period?",
+      "reference_answer": "There is a defect-free period of 30 days commencing from the first day of tenancy or date the premises is handed over, whichever is later. During this period, the landlord shall not hold the tenant responsible for any defects identified and brought to the landlord's attention in writing, and the landlord shall be responsible for rectifying such defects."
+    },
+    {
+      "id": "q005",
+      "category": "maintenance",
+      "difficulty": "easy",
+      "question": "Who replaces light bulbs and tubes?",
+      "reference_answer": "The tenant shall replace electric bulbs and tubes at the tenant's own expense."
+    },
+    {
+      "id": "q006",
+      "category": "repairs",
+      "difficulty": "medium",
+      "question": "Who pays for repairs if something costs $150 to fix?",
+      "reference_answer": "For repairs not exceeding $200 per item, the tenant is responsible for all minor repairs and routine maintenance throughout the tenancy. This excludes aircon units, water heater and structural repairs."
+    },
+    {
+      "id": "q007",
+      "category": "repairs",
+      "difficulty": "medium",
+      "question": "What happens if a repair costs more than $200?",
+      "reference_answer": "For repairs exceeding $200 per item, the initial $200 shall be borne by the tenant and the excess to be borne by the landlord. The landlord's approval must be obtained prior to repairs being carried out and the landlord reserves the right to engage his own contractor."
+    },
+    {
+      "id": "q008",
+      "category": "aircon",
+      "difficulty": "medium",
+      "question": "How often should the air conditioning be serviced and who pays?",
+      "reference_answer": "Air conditioning must be fully serviced every three months at the landlord's cost. Cost of repair, replacement, chemical cleaning and gas top up is borne by the landlord unless caused by the tenant's act, neglect or omission. Chemical cleaning is solely at the discretion of the contractor appointed by the landlord."
+    },
+    {
+      "id": "q009",
+      "category": "alterations",
+      "difficulty": "easy",
+      "question": "Can I make alterations to the property?",
+      "reference_answer": "The tenant shall not carry out or permit alterations, additions, drilling, hacking or any changes to the premises without the prior written consent of the landlord. The tenant shall make good such alterations at his own cost upon the landlord's request."
+    },
+    {
+      "id": "q010",
+      "category": "access",
+      "difficulty": "medium",
+      "question": "Can the landlord enter my apartment for repairs?",
+      "reference_answer": "The landlord and its agents, surveyors and workmen may enter the premises at all reasonable times by prior appointment mutually agreed by both parties for viewing the condition or doing repairs, alterations or improvements."
+    },
+    {
+      "id": "q011",
+      "category": "subletting",
+      "difficulty": "easy",
+      "question": "Can I sublet the apartment?",
+      "reference_answer": "The tenant shall not assign, sublet or part with possession of the premises without the prior written consent of the landlord, whose consent shall not be unreasonably withheld for a respectable or reputable person or corporation."
+    },
+    {
+      "id": "q012",
+      "category": "pets",
+      "difficulty": "easy",
+      "question": "Am I allowed to keep pets?",
+      "reference_answer": "The tenant shall not keep any animal or bird legally permitted to be pets without the prior written permission of the landlord and must comply with any conditions imposed by the landlord if permission is granted."
+    },
+    {
+      "id": "q013",
+      "category": "rent_payment",
+      "difficulty": "hard",
+      "question": "What happens if I pay rent late?",
+      "reference_answer": "If rent remains unpaid for 7 calendar days after becoming payable, the landlord may claim interest at 10% per annum on the amount unpaid calculated from after the date due up to the date of actual payment. The formula is: monthly rental x 10%/365 x number of days payment is late. If rent is unpaid for 7 days, the landlord may also re-enter the premises and terminate the tenancy."
+    },
+    {
+      "id": "q014",
+      "category": "diplomatic_clause",
+      "difficulty": "hard",
+      "question": "Can I terminate the lease early if I get transferred out of Singapore?",
+      "reference_answer": "After 12 months from commencement, the tenant may terminate the tenancy by giving 2 months notice or paying 2 months rent in lieu if the tenant is deported, refused permission to work or reside in Singapore, or transferred to another country. Documentary evidence must be provided on or before the last day of termination or handover. The tenant must also reimburse the landlord commission paid to the agency on a pro-rata basis for the remaining unfulfilled term."
+    },
+    {
+      "id": "q015",
+      "category": "occupiers",
+      "difficulty": "medium",
+      "question": "Can I have additional people living in the apartment?",
+      "reference_answer": "Only occupiers who are registered in the tenancy agreement may occupy the premises. Substitution, addition or change of occupiers are subject to the prior written permission of the landlord."
+    },
+    {
+      "id": "q016",
+      "category": "move_out",
+      "difficulty": "medium",
+      "question": "What do I need to do when moving out?",
+      "reference_answer": "At expiration or termination, the tenant must deliver the premises in good and tenantable repair with fair wear and tear excepted. No painting is required if due to fair wear and tear. The tenant must arrange professional cleaning at the same level as received and dry clean the curtains before returning to the landlord."
+    },
+    {
+      "id": "q017",
+      "category": "property_tax",
+      "difficulty": "easy",
+      "question": "Who pays the property tax?",
+      "reference_answer": "The landlord shall pay all property tax, rates and assessments in respect of the premises other than those agreed to be paid by the tenant."
+    },
+    {
+      "id": "q018",
+      "category": "insurance",
+      "difficulty": "medium",
+      "question": "Who is responsible for insurance?",
+      "reference_answer": "The landlord shall insure the premises against loss or damage by fire covering the landlord's property only. The tenant must insure their own personal chattels against theft, loss or damage by fire at their own expense."
+    },
+    {
+      "id": "q019",
+      "category": "walls_ceiling",
+      "difficulty": "hard",
+      "question": "Can I hang picture frames on the walls?",
+      "reference_answer": "The tenant shall not hack holes, drive anything into walls or bore holes in the ceiling without written consent from the landlord, except for anything reasonably done to hang pictures, paintings and the like. The tenant must remove nails, screws and hooks and patch holes with white putty prior to expiration of the tenancy."
+    },
+    {
+      "id": "q020",
+      "category": "renewal",
+      "difficulty": "hard",
+      "question": "Can I renew my lease after it expires?",
+      "reference_answer": "The tenant may request renewal by written notice at least 2 calendar months before expiry, provided there are no breaches during the tenancy term. The landlord shall grant a further term of 1 year at prevailing market rent on the same terms and conditions, except the option to renew and diplomatic clause will not apply during the renewal term unless otherwise agreed. The landlord shall pay agency renewal commission where applicable."
+    }
+  ]
+}
