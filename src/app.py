@@ -164,7 +164,6 @@ class StreamlitApp:
                 margin-bottom: 0.6rem !important;
             }}
 
-<<<<<<< HEAD
             /* Inputs: light box + black text */
             div[data-testid="stExpander"] input {{
                 background: #fff !important;
@@ -276,7 +275,6 @@ class StreamlitApp:
 
 
             
-=======
             /* Subtle separators */
             [data-testid="stSidebar"] .ca-sep {{
                 border-top: 1px solid rgba(255,255,255,0.25);
@@ -285,7 +283,6 @@ class StreamlitApp:
 
             /* ---- IMPORTANT: do NOT fix-position the chat input ---- */
             /* (No [data-testid="stChatInputContainer"] position: fixed here) */
->>>>>>> 5510222 (UI: Added gateway-based role routing and refined sidebar navigation)
             </style>
             """,
             unsafe_allow_html=True,
@@ -320,13 +317,8 @@ class StreamlitApp:
         if "last_audio_bytes" not in st.session_state:
             st.session_state["last_audio_bytes"] = None
 
-<<<<<<< HEAD
     def _api_base(self) -> str:
         """Determines the base API URL"""
-=======
-    # ===== BACKEND AUTH HELPERS =====
-    def _api_base(self) -> str:
->>>>>>> 5510222 (UI: Added gateway-based role routing and refined sidebar navigation)
         try:
             if "api" in st.secrets and "base_url" in st.secrets["api"]:
                 return st.secrets["api"]["base_url"].rstrip("/")
@@ -358,10 +350,7 @@ class StreamlitApp:
                     "email": data.get("email", email),
                     "logged_in": True,
                 }
-<<<<<<< HEAD
                 
-=======
->>>>>>> 5510222 (UI: Added gateway-based role routing and refined sidebar navigation)
                 st.session_state["auth"] = auth_data
                 set_current_auth(auth_data)
                 st.toast("Logged in.")
@@ -386,18 +375,11 @@ class StreamlitApp:
         }
         st.toast("Logged out.")
 
-<<<<<<< HEAD
     def _render_sidebar(self):
         with st.sidebar:
             # debug/config block
             if self.config_manager.get_debug_mode():
                 st.subheader("🔧 Configuration Status")
-=======
-    # ===== BACKEND DATA FETCHING =====
-    def _auth_headers(self):
-        token = st.session_state.get("auth", {}).get("token")
-        return {"Authorization": f"Bearer {token}"} if token else {}
->>>>>>> 5510222 (UI: Added gateway-based role routing and refined sidebar navigation)
 
     def _get_json(self, path: str, params: dict | None = None, fallback=None):
         base = self._api_base()
@@ -496,15 +478,6 @@ class StreamlitApp:
                 "<div class='ca-tagline-strong'>Simplifying rentals,<br>one chat at a time.</div>",
                 unsafe_allow_html=True,
             )
-<<<<<<< HEAD
-            st.markdown("<div class='ca-tagline'>Simplifying rentals, <br>one chat at a time.</div>", unsafe_allow_html=True)
-            st.divider()
-        
-            # Login / Logout
-            with st.expander("🔐 Login / Logout", expanded=False):
-                email = st.text_input("Email", key="auth_email")
-                pwd = st.text_input("Password", type="password", key="auth_pwd")
-=======
 
             st.markdown("<div class='ca-sep'></div>", unsafe_allow_html=True)
 
@@ -513,17 +486,26 @@ class StreamlitApp:
             tenant_menu = ["Conversations", "Profile", "Logout"]
             agent_menu  = ["Dashboard", "Profile", "Logout"]
             menu = tenant_menu if role == "tenant" else agent_menu
->>>>>>> 5510222 (UI: Added gateway-based role routing and refined sidebar navigation)
 
             prev = st.session_state.get("sidebar_nav")
             default_index = menu.index(prev) if prev in menu else 0
 
-<<<<<<< HEAD
-                auth = st.session_state["auth"]
-                if auth["logged_in"]:
-                    st.success(f"Logged in as: {auth.get('email') or 'user'}")
-                else:
-                    st.caption("You're not logged in.")
+            st.selectbox(
+                label="",
+                options=menu,
+                index=default_index,
+                key="sidebar_nav",
+                help="Choose a section",
+                label_visibility="collapsed",
+            )
+
+            st.markdown("<div class='ca-sep'></div>", unsafe_allow_html=True)
+
+            auth = st.session_state["auth"]
+            if auth["logged_in"]:
+                st.success(f"Logged in as: {auth.get('email') or 'user'}")
+            else:
+                st.caption("You're not logged in.")
             
             if st.session_state.get("auth", {}).get("logged_in"):
                 st.caption(f"🔐 Auth persisted: {st.session_state['auth'].get('email')}")
@@ -580,23 +562,8 @@ class StreamlitApp:
             
             st.divider()
 
-            # Feedback/bug report
-            st.markdown("<h3 style='text-align:center;'>🐞 Feedback/Bug Report</h3>", unsafe_allow_html=True)
-=======
-            st.selectbox(
-                label="",
-                options=menu,
-                index=default_index,
-                key="sidebar_nav",
-                help="Choose a section",
-                label_visibility="collapsed",
-            )
-
-            st.markdown("<div class='ca-sep'></div>", unsafe_allow_html=True)
-
             # 4) Feedback/Bug Report
             st.markdown("<h3 style='text-align:left;'>🐞 Feedback / Bug Report</h3>", unsafe_allow_html=True)
->>>>>>> 5510222 (UI: Added gateway-based role routing and refined sidebar navigation)
             with st.form("bugform", clear_on_submit=True):
                 bug = st.text_area("Tell us what went wrong or how we can improve.", height=100)
                 submitted = st.form_submit_button("Submit")
@@ -617,10 +584,7 @@ class StreamlitApp:
             st.markdown("<div class='ca-sep'></div>", unsafe_allow_html=True)
             st.markdown("<div class='ca-footer'>⚡ Powered by Casa Amigo © 2025</div>", unsafe_allow_html=True)
 
-<<<<<<< HEAD
-=======
     # === CHAT HANDLERS =====
->>>>>>> 5510222 (UI: Added gateway-based role routing and refined sidebar navigation)
     def _display_chat_history(self):
         for msg in st.session_state["messages"]:
             role = msg["role"]
@@ -630,7 +594,6 @@ class StreamlitApp:
             with st.chat_message(role, avatar=avatar):
                 st.markdown(f'<div class="ca-bubble {bubble_class}">{content}</div>', unsafe_allow_html=True)
 
-<<<<<<< HEAD
     def _process_query(self, user_query: str):
         """Process a user query (from text or voice)"""
         print(f"[APP] Moderating user input: {user_query[:50]}...")
@@ -761,167 +724,14 @@ class StreamlitApp:
             st.rerun()
             return
         
-        # Handle text input
-        if user_query := st.chat_input("Type your message..."):
+        # Handle text input - ADD UNIQUE KEY
+        if user_query := st.chat_input("Type your message...", key="main_chat_input"):
             self._process_query(user_query)
             st.rerun()
 
-        # footer below chat box
-=======
-    # ---- Text + Voice input handler ----
-    def _handle_user_input(self):
-        """
-        Natural bottom chat bar + voice toolbar above it.
-        Typing bubble stays until replaced by the final answer.
-        """
-        # Voice defaults (unchanged)
-        st.session_state.setdefault("voice_enabled", False)
-        st.session_state.setdefault("tts_voice", "nova")
-        st.session_state.setdefault("last_audio_length", 0)
-
-        # Slim toolbar above the input for the mic
-        with st.container():
-            mic_col, _ = st.columns([1, 9])
-            with mic_col:
-                audio_bytes = audiorecorder("🎤", "⏹️", key="audio_recorder")
-
-        # Chat input at the bottom
-        text_query = st.chat_input("Type your message...")
-
-        user_query = None
-
-        # Voice path (only new audio)
-        try:
-            audio_len = len(audio_bytes) if audio_bytes else 0
-        except Exception:
-            audio_len = 0
-
-        if audio_bytes and audio_len > 0 and audio_len != st.session_state["last_audio_length"]:
-            st.session_state["last_audio_length"] = audio_len
-            with st.spinner("🎤 Transcribing your message..."):
-                try:
-                    user_query = self.voice_manager.transcribe_audio(audio_bytes)
-                except Exception as e:
-                    st.error(f"❌ Could not transcribe audio. {e}")
-                    user_query = None
-
-        # Text path
-        if text_query:
-            user_query = text_query
-            st.session_state["last_audio_length"] = 0
-
-        if not user_query:
-            return
-
-        # Moderation of user input
-        try:
-            mod_user = moderate_content(user_query, self.config_manager.api_key)
-        except Exception as e:
-            mod_user = {"is_safe": True, "flagged_categories": [], "error": str(e)}
-
-        # Persist + show user bubble
-        st.session_state["messages"].append({"role": "user", "content": user_query})
-        with st.chat_message("user", avatar=self.user_icon):
-            st.markdown(f'<div class="ca-bubble ca-user">{user_query}</div>', unsafe_allow_html=True)
-
-        # Handle flagged content
-        if not mod_user.get("is_safe", True):
-            warning_msg = get_moderation_message(mod_user.get("flagged_categories", []))
-            reply = (
-                f"⚠️ {warning_msg}\n\n"
-                "Please rephrase your message to comply with our community guidelines. "
-                "Casa Amigo is here to help with rental-related questions in a respectful manner."
-            )
-            with st.chat_message("assistant", avatar=self.idle_icon):
-                st.markdown(f'<div class="ca-bubble ca-assist">{reply}</div>', unsafe_allow_html=True)
-            st.session_state["messages"].append({"role": "assistant", "content": reply})
-            st.session_state.setdefault("moderation_flags", []).append({
-                "timestamp": time.time(),
-                "query": user_query,
-                "categories": mod_user.get("flagged_categories", [])
-            })
-            return
-
-        # Generate assistant response with a visible typing bubble
-        with st.chat_message("assistant", avatar=self.thinking_icon):
-            placeholder = st.empty()
-            # keep typing bubble visible until final answer replaces it
-            placeholder.markdown(
-                "<div class='ca-typing'><span class='ca-dot'></span><span class='ca-dot'></span><span class='ca-dot'></span></div>",
-                unsafe_allow_html=True
-            )
-
-            try:
-                auth = st.session_state.get("auth", {}) or {}
-                set_current_auth(auth)
-                response = self.chatbot.chat(user_query, auth=auth)
-            except Exception as e:
-                response = "⚠️ Sorry, something went wrong. Please try again."
-                st.toast(f"Backend error: {e}")
-
-            # Safety pass on assistant output
-            try:
-                mod_assist = moderate_content(response, self.config_manager.api_key)
-            except Exception as e:
-                mod_assist = {"is_safe": True, "flagged_categories": [], "error": str(e)}
-
-            if not mod_assist.get("is_safe", True):
-                response = (
-                    "I apologize, but I need to rephrase my response. "
-                    "Let me try again with a different approach."
-                )
-
-            # Replace typing bubble with final assistant bubble
-            placeholder.markdown(f"<div class='ca-bubble ca-assist'>{response}</div>", unsafe_allow_html=True)
-
-            # Optional TTS playback (unchanged)
-            if st.session_state.get("voice_enabled", False):
-                with st.spinner("🔊 Generating voice response..."):
-                    try:
-                        voice_name = st.session_state.get("tts_voice", "nova")
-                        audio_out = self.voice_manager.text_to_speech(response, voice=voice_name)
-                        if audio_out:
-                            st.audio(audio_out, format="audio/mp3", autoplay=False)
-                        else:
-                            st.caption("⚠️ Voice generation failed")
-                    except Exception as e:
-                        st.caption(f"⚠️ Voice generation failed: {e}")
-
-        # Persist assistant message
-        st.session_state["messages"].append({"role": "assistant", "content": response})
-
-        # Debug
-        if self.config_manager.get_debug_mode():
-            with st.sidebar.expander("🔎 Debug (last turn)", expanded=False):
-                st.write("**Input Moderation:**")
-                if mod_user.get("error"):
-                    st.warning(f"Moderation error: {mod_user['error']}")
-                else:
-                    st.write(f"✅ Safe: {mod_user.get('is_safe')}")
-                    if mod_user.get("flagged_categories"):
-                        st.write(f"⚠️ Flagged: {', '.join(mod_user['flagged_categories'])}")
-
-                logs = consume_debug_log()
-                if not logs:
-                    st.caption("No tool logs yet.")
-                else:
-                    for row in logs:
-                        if row["event"] == "tool_called":
-                            st.write(f"**Tool:** `{row['tool']}`")
-                            st.code(row["args"])
-                        elif row["event"] == "retrieval":
-                            st.write(f"**retrieved_k:** {row['retrieved_k']}")
-                            top = row.get("top", [])
-                            if top:
-                                st.write("**Top-3:**")
-                                for t in top:
-                                    st.write(f"- #{t['rank']} — score={t['score']} — {t['label']}")
-                        elif row["event"] == "tool_error":
-                            st.error(f"{row['tool']} error: {row['error']}")
-
     # ===== GATEWAY/LOGIN RENDERING =====
     def _render_gateway(self):
->>>>>>> 5510222 (UI: Added gateway-based role routing and refined sidebar navigation)
+        # footer below chat box
         st.markdown(
             f"""
             <div style="text-align:center; margin-top:1rem;">
@@ -936,8 +746,6 @@ class StreamlitApp:
             unsafe_allow_html=True,
         )
 
-<<<<<<< HEAD
-=======
         # Custom Tab Styles
         st.markdown(
             """
@@ -998,7 +806,6 @@ class StreamlitApp:
                 st.error("❌ Login failed. Please check your credentials.")
 
     # ===== MAIN APP RUNNER =====
->>>>>>> 5510222 (UI: Added gateway-based role routing and refined sidebar navigation)
     def run(self):
         screen = st.session_state.get("screen", "gateway")
         role = st.session_state.get("active_role")
@@ -1014,11 +821,11 @@ class StreamlitApp:
 
         # Sidebar
         self._render_sidebar()
-<<<<<<< HEAD
+        
+        # Main content area - ONLY call these once at the top level
         self._display_chat_history()
         self._handle_user_input()
 
-=======
         nav = st.session_state.get("sidebar_nav")
 
         # Logout
@@ -1041,7 +848,6 @@ class StreamlitApp:
                 else:
                     # Normalize and show a clean metadata table
                     raw_df = pd.json_normalize(props)
->>>>>>> 5510222 (UI: Added gateway-based role routing and refined sidebar navigation)
 
                     preferred_cols = [
                         "id", "property_id", "uuid",
@@ -1080,8 +886,10 @@ class StreamlitApp:
         # ==== TENANT FLOW =====
         elif role == "tenant":
             if nav == "Conversations":
-                self._display_chat_history()
-                self._handle_user_input()
+                # DON'T call these again - they're already called above
+                # self._display_chat_history()  # REMOVE THIS LINE
+                # self._handle_user_input()     # REMOVE THIS LINE
+                pass  # Chat is already displayed above
 
             elif nav == "Profile":
                 auth = st.session_state.get("auth", {}) or {}
