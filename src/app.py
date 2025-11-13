@@ -55,6 +55,62 @@ class StreamlitApp:
         st.markdown(
             f"""
             <style>
+            /* === FIX FOR SIDEBAR COLLAPSE BUTTON === */
+            /* Hide the Material icon text "keyboard_double_arrow_left" */
+            [data-testid="stIconMaterial"] {{
+                font-size: 0 !important;
+            }}
+
+            /* Hide text in collapse button specifically */
+            button[kind="headerNoPadding"] [data-testid="stIconMaterial"] {{
+                font-size: 0 !important;
+                color: transparent !important;
+            }}
+
+            /* Keep button functional but hide text content */
+            button[kind="headerNoPadding"] span {{
+                font-size: 0 !important;
+                line-height: 0 !important;
+            }}
+
+            /* Clean, simple collapse button */
+            button[kind="headerNoPadding"] {{
+                width: 2rem !important;
+                height: 2rem !important;
+                background: transparent !important;
+                border: none !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                position: relative !important;
+                transition: opacity 0.2s ease !important;
+                opacity: 0.7 !important;
+            }}
+
+            /* Subtle hover effect */
+            button[kind="headerNoPadding"]:hover {{
+                opacity: 1 !important;
+            }}
+
+            /* Simple chevron - sidebar open */
+            button[kind="headerNoPadding"]::before {{
+                content: "‹" !important;
+                font-size: 1.8rem !important;
+                color: #808080 !important;
+                position: absolute !important;
+                left: 50% !important;
+                top: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                line-height: 1 !important;
+                font-weight: 300 !important;
+            }}
+
+            /* Simple chevron - sidebar collapsed */
+            [data-testid="stSidebar"][aria-expanded="false"] button[kind="headerNoPadding"]::before {{
+                content: "›" !important;
+            }}
+            /* === END SIDEBAR COLLAPSE FIX === */
+
             .block-container {{
                 padding-top: 1.1rem;
                 padding-bottom: 2rem;
