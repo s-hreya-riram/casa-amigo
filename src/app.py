@@ -547,7 +547,7 @@ class StreamlitApp:
             pass
         return os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
 
-    def _api_login(self, email: str, password: str):
+    def _api_login(self, email: str, password: str, user_type: str | None = None):
         API_BASE = self._api_base()
         email = (email or "").strip()
         password = (password or "").strip()
@@ -555,23 +555,33 @@ class StreamlitApp:
             st.error("Email and password are required.")
             return False
         try:
+            # Build params for backend call
+            params = {"email": email, "password": password}
+            if user_type:
+                params["user_type"] = user_type  
+
             r = requests.post(
                 f"{API_BASE}/auth/login",
-                params={"email": email, "password": password},
+                params=params,
                 timeout=15,
             )
             r.raise_for_status()
             data = r.json()
             token = data.get("access_token") or data.get("token")
             user_id = data.get("user_id")
+            
+            #  Determine user type from backend response if available
+            backend_user_type = data.get("user_type") or user_type
+
             if token:
                 auth_data = {
                     "token": token,
                     "user_id": str(user_id),
                     "email": data.get("email", email),
+                    "user_type": backend_user_type,
                     "logged_in": True,
                 }
-                
+
                 st.session_state["auth"] = auth_data
                 set_current_auth(auth_data)
                 st.toast("Logged in.")
@@ -595,12 +605,6 @@ class StreamlitApp:
             "logged_in": False,
         }
         st.toast("Logged out.")
-
-    def _render_sidebar(self):
-        with st.sidebar:
-            # debug/config block
-            if self.config_manager.get_debug_mode():
-                st.subheader("🔧 Configuration Status")
 
     def _get_json(self, path: str, params: dict | None = None, fallback=None):
         base = self._api_base()
@@ -682,6 +686,13 @@ class StreamlitApp:
 
         df = pd.DataFrame(rows).sort_values(["score","price"], ascending=[False, True])
         return df
+    
+    def _auth_headers(self):
+        auth = st.session_state.get("auth", {}) or {}
+        token = auth.get("token")
+        if not token:
+            return {}
+        return {"Authorization": f"Bearer {token}"}
 
     # ===== SIDEBAR RENDERING =====
     def _render_sidebar(self):
@@ -724,7 +735,6 @@ class StreamlitApp:
 
             auth = st.session_state["auth"]
             if auth["logged_in"]:
-                # Single clean status line
                 st.markdown(
                     f"<p style='color: #FFFFFF; font-size: 0.9rem; font-weight: 500; margin: 0.5rem 0;'>✅ Signed in as <span style='color: #FFFFFF; font-weight: 600;'>{auth.get('email') or 'user'}</span></p>",
                     unsafe_allow_html=True
@@ -737,45 +747,46 @@ class StreamlitApp:
 
             st.divider()
 
-            # Voice Input Section - Simple and Clean
-            st.markdown("<div class='voice-section'>", unsafe_allow_html=True)
-            col1, col2 = st.columns([3.25, 1])
-            with col1:
-                st.markdown(
-                    "<p class='voice-hint'>Prefer to speak? Record your message instead of typing.</p>",
-                    unsafe_allow_html=True
-                )
-            with col2:
-                audio_bytes = audiorecorder("🔴", "⏹️", key="sidebar_voice")
-            st.markdown("</div>", unsafe_allow_html=True)
+            # 4) Voice Input Section --> ONLY for tenants
+            if role == "tenant":
+                st.markdown("<div class='voice-section'>", unsafe_allow_html=True)
+                col1, col2 = st.columns([3.25, 1])
+                with col1:
+                    st.markdown(
+                        "<p class='voice-hint'>Prefer to speak? Record your message instead of typing.</p>",
+                        unsafe_allow_html=True
+                    )
+                with col2:
+                    audio_bytes = audiorecorder("🔴", "⏹️", key="sidebar_voice")
+                st.markdown("</div>", unsafe_allow_html=True)
 
-            # Process voice input only if it's new audio
-            if audio_bytes and len(audio_bytes) > 0:
-                try:
-                    from io import BytesIO
-                    audio_buffer = BytesIO()
-                    audio_bytes.export(audio_buffer, format="wav")
-                    audio_data = audio_buffer.getvalue()
+                # Process voice input only if it's new audio
+                if audio_bytes and len(audio_bytes) > 0:
+                    try:
+                        from io import BytesIO
+                        audio_buffer = BytesIO()
+                        audio_bytes.export(audio_buffer, format="wav")
+                        audio_data = audio_buffer.getvalue()
 
-                    current_audio_hash = hash(audio_data)
-                    last_audio_hash = st.session_state.get("last_audio_hash", None)
+                        current_audio_hash = hash(audio_data)
+                        last_audio_hash = st.session_state.get("last_audio_hash", None)
 
-                    if current_audio_hash != last_audio_hash:
-                        st.session_state["last_audio_hash"] = current_audio_hash
-                        with st.spinner("Transcribing..."):
-                            transcribed_text = self.voice_manager.transcribe_audio(audio_bytes)
+                        if current_audio_hash != last_audio_hash:
+                            st.session_state["last_audio_hash"] = current_audio_hash
+                            with st.spinner("Transcribing..."):
+                                transcribed_text = self.voice_manager.transcribe_audio(audio_bytes)
 
-                        if transcribed_text:
-                            st.session_state["pending_voice_query"] = transcribed_text
-                            st.rerun()
-                        else:
-                            st.error("Could not transcribe. Please try again.")
-                except Exception as e:
-                    st.error(f"Error processing audio: {e}")
+                            if transcribed_text:
+                                st.session_state["pending_voice_query"] = transcribed_text
+                                st.rerun()
+                            else:
+                                st.error("Could not transcribe. Please try again.")
+                    except Exception as e:
+                        st.error(f"Error processing audio: {e}")
 
-            st.divider()
+                st.divider()
 
-            # 4) Feedback/Bug Report
+            # 5) Feedback/Bug Report
             st.markdown("<h3 style='text-align:left;'>🐞 Feedback/Bug Report</h3>", unsafe_allow_html=True)
 
             st.markdown("<div id='bugform-wrapper'>", unsafe_allow_html=True)
@@ -787,7 +798,7 @@ class StreamlitApp:
                     st.success("Thanks for sharing! We truly appreciate your feedback.")
             st.markdown("</div>", unsafe_allow_html=True)
 
-            # 5) Chat Controls --> ONLY for tenants
+            # 6) Chat Controls --> ONLY for tenants
             if role == "tenant":
                 st.markdown("<div class='ca-sep'></div>", unsafe_allow_html=True)
                 st.markdown("<h3 style='text-align:left;'>💬 Chat Controls</h3>", unsafe_allow_html=True)
@@ -803,7 +814,7 @@ class StreamlitApp:
                     st.toast("Chat history cleared.")
                 st.markdown("</div>", unsafe_allow_html=True)
 
-            # 6) Footer
+            # 7) Footer
             st.markdown("<div class='ca-sep'></div>", unsafe_allow_html=True)
             st.markdown("<div class='ca-footer'>⚡ Powered by Casa Amigo © 2025</div>", unsafe_allow_html=True)
 
@@ -1018,10 +1029,11 @@ class StreamlitApp:
             help="Enter your email and password to continue.",
             type="primary",
             use_container_width=True,
-            kwargs={"className": "gateway-login-btn"}
         ):
+            # Map the frontend role to backend user_type
+            mapped_type = "tenant" if role == "tenant" else "property_agent"
 
-            if self._api_login(email, pwd):
+            if self._api_login(email, pwd, mapped_type):
                 st.session_state[f"auth_{role}"] = st.session_state["auth"]
                 st.session_state["active_role"] = role
                 st.session_state["screen"] = "app"
@@ -1042,7 +1054,7 @@ class StreamlitApp:
             self._render_gateway()
             return
 
-        # 2) No role? Send back to gateway
+        # 2) Post-login check
         if not role:
             st.warning("⚠️ Please log in first.")
             st.session_state["screen"] = "gateway"
@@ -1108,6 +1120,8 @@ class StreamlitApp:
                 with c3:
                     st.metric("User ID", auth.get("user_id") or "—")
 
+                st.markdown(f"**User Type:** `{auth.get('user_type') or '—'}`")
+
         # 6) Tenant flow
         elif role == "tenant":
             if nav == "Conversations":
@@ -1126,6 +1140,8 @@ class StreamlitApp:
                     st.metric("Email", auth.get("email") or "—")
                 with c3:
                     st.metric("User ID", auth.get("user_id") or "—")
+
+                st.markdown(f"**User Type:** `{auth.get('user_type') or '—'}`")
 
 # ===== APP ENTRY POINT =====
 if __name__ == "__main__":
