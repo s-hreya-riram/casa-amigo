@@ -27,7 +27,7 @@ class StreamlitApp:
 
     def __init__(self):
         self.config_manager = ConfigManager()
-        self.doc_manager = DocumentIndexManager()
+        self.doc_manager = DocumentIndexManager(api_key=self.config_manager.api_key)
         self.chatbot = CasaAmigoAgent(self.doc_manager.index, self.config_manager.api_key)
         self.voice_manager = VoiceManager(self.config_manager.api_key)
         self._setup_page()

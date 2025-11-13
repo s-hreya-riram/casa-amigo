@@ -75,7 +75,8 @@ class CasaAmigoAgent:
         self._tools = build_tools(
             index, 
             similarity_top_k=self.config.similarity_top_k,
-            llm_client=self.openai_client  # Share the client
+            llm_client=self.openai_client, # Share the client,
+            llm=self.llm
         )
 
         # ---- AgentWorkflow ---------------------------------------------------

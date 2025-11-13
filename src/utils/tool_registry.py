@@ -26,7 +26,7 @@ def personalised_recommendation(): ...
 
 # ---- Tool registry ---------------------------------------------------------
 
-def build_tools(index: VectorStoreIndex, similarity_top_k: int = 5, llm_client=None):
+def build_tools(index: VectorStoreIndex, similarity_top_k: int = 5, llm_client=None, llm=None):
     """
     Build tools with shared LLM client for efficiency.
     
@@ -36,7 +36,7 @@ def build_tools(index: VectorStoreIndex, similarity_top_k: int = 5, llm_client=N
         llm_client: OpenAI client instance to share across tools
     """
     
-    lease_qna_fn = build_lease_qna_tool(index, debug_log)
+    lease_qna_fn = build_lease_qna_tool(index, llm_client,llm, debug_log)
 
     # ----- tool 1: tenancy qna -------
     lease_qna = FunctionTool.from_defaults(

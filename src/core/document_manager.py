@@ -7,7 +7,7 @@ from llama_index.core import SimpleDirectoryReader, Settings
 from llama_index.embeddings.openai import OpenAIEmbedding
 
 # Ensure we always use the same embedding model for this index
-Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-large")
+#Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-large")
 
 # More forgiving clause detector, e.g.
 # "2(b) SECURITY DEPOSIT"
@@ -22,6 +22,12 @@ CLAUSE_RE = re.compile(
     """
 )
 
+SUBCLAUSE_RE = re.compile(
+    r"""(?imx)
+    ^\s*\((?P<letter>[a-z])\)\s+
+    (?P<title>[A-Za-z][^\n\r]{0,100})?
+    """
+)
 
 class DocumentIndexManager:
     def __init__(
@@ -29,6 +35,8 @@ class DocumentIndexManager:
         pdf_path: str = None,
         persist_dir: str = None,
         cache_version: int = 1,
+        embed_model=None,
+        api_key= None,
     ):
         if pdf_path is None:
             # NOTE: no leading '/' in 'data' – otherwise join() ignores the prefix.
@@ -45,12 +53,26 @@ class DocumentIndexManager:
                 os.path.dirname(__file__), "..", "..", "pdf_index_v2"
             )
 
+
+        if embed_model is None:
+            embed_model = OpenAIEmbedding(
+                model="text-embedding-3-large",
+                api_key=api_key,
+            )
+
         self.pdf_path = pdf_path
         self.persist_dir = persist_dir
         self.cache_version = cache_version
+        self.embed_model = embed_model
+
+       
         self.index = self._load_or_build_index()
 
+
+
     # ---------- Clause-level splitting ----------
+    
+    
     def _split_into_clauses(self, text: str):
         """
         Returns list of (label, title, body_text) for each clause.
@@ -67,30 +89,48 @@ class DocumentIndexManager:
                 out.append((current_label, current_title or "", body))
             current, current_label, current_title = [], None, None
 
+        current_number = None  # e.g. "5"
+
         for line in lines:
-            m = CLAUSE_RE.match(line)
-            if m:
-                # new clause header -> flush previous
+            m_clause = CLAUSE_RE.match(line)
+            m_sub = SUBCLAUSE_RE.match(line) if not m_clause else None
+
+            if m_clause:
                 flush()
-                # normalise label like "5 (b)" -> "5(b)"
-                raw_label = re.sub(r"\s+", "", m.group("label")).lower()
-                current_label = raw_label
-                current_title = (m.group("title") or "").strip(" -–:")
+                raw_label = re.sub(r"\s+", "", m_clause.group("label")).lower()
+                current_number = re.match(r"\d+", raw_label).group(0)
+                current_label = raw_label                 # "5"
+                current_title = (m_clause.group("title") or "").strip(" -–:")
+            elif m_sub and current_number:
+                # New lettered subclause inside current_number
+                flush()
+                letter = m_sub.group("letter").lower()    # "c"
+                current_label = f"{current_number}({letter})"   # "5(c)"
+                current_title = (m_sub.group("title") or "").strip(" -–:")
             else:
                 current.append(line)
-
-        flush()
+        
+        flush()  # flush last clause
         return out
+
+            
+
 
     @st.cache_resource
     def _cached_load_or_build_index(
         _self, pdf_path: str, persist_dir: str, cache_version: int
     ):
         """Load or build single-document clause-aware index."""
+
         if os.path.exists(persist_dir):
+
+ 
             storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
             index = load_index_from_storage(storage_context)
             print(f"Loaded existing index from {persist_dir}")
+
+
+
         else:
             print(f"Building new clause-aware index from {pdf_path}")
             reader = SimpleDirectoryReader(input_files=[pdf_path])

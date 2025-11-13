@@ -199,11 +199,8 @@ def osm_url(elem: dict) -> str:
 
 # ------------------ Lease clause formatting helpers ----------------------
 
-# Try to match common clause header styles:
-#  1) "8. Diplomatic Clause", "8.2 Early Termination", "8(b) ..."
-#  2) "Clause 8(b): Diplomatic Clause"
-#  3) "Special Clause: Diplomatic Clause"
-#  4) Named only: "Diplomatic Clause"
+from textwrap import shorten  # if not already imported
+
 CLAUSE_HEADER_RE = re.compile(
     r"""(?imx)
     ^
@@ -240,55 +237,123 @@ def detect_clause_label_from_text(text: str) -> Optional[str]:
         return named
     return None
 
+import re
+from textwrap import shorten
+
+import re
+
+def _strip_clause_prefix(quote: str) -> str:
+    """
+    Remove leading 'Clause 5:', 'Clause 5(c):', etc. from a snippet so we don't
+    show the clause number twice.
+    """
+    if not quote:
+        return quote
+    # e.g. "Clause 5: PROVIDED ALWAYS ..." or "Clause 5(c): ..."
+    return re.sub(
+        r"^\s*Clause\s+[0-9A-Za-z()]+[:.\-–]?\s*",
+        "",
+        quote,
+        count=1,
+    )
+
+
 def excerpt(text: str, width: int = 320) -> str:
-    """Collapse whitespace and shorten with an ellipsis."""
-    return shorten(re.sub(r"\s+", " ", text or "").strip(), width=width, placeholder="…")
+    """Collapse whitespace, fix OCR jammed words, and shorten with an ellipsis."""
+    s = text or ""
+    s = re.sub(r"\s+", " ", s).strip()
+    s = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", s)
+    return shorten(s, width=width, placeholder="…")
 
-def format_with_citations(resp, min_items: int = 1) -> str:
-    """Return 'Answer' + 'Relevant excerpts' with clause labels when available."""
+
+CLAUSE_SHORT_RE = re.compile(r"\bClause\s+(\d+(?:\([a-z]\))?)", re.I)
+
+def _short_clause_label(label: str) -> str:
+    if not label:
+        return "Clause (unspecified)"
+    m = CLAUSE_SHORT_RE.search(label)
+    if m:
+        # Gives "Clause 5" or "Clause 5(c)"
+        return f"Clause {m.group(1)}"
+    return label
+
+
+def format_with_citations(resp, min_items: int = 1, max_items: int = 3) -> str:
     answer_text = resp.response if getattr(resp, "response", None) else str(resp)
-    lines = ["**Answer**", answer_text, "", "**Relevant excerpts**"]
+    answer_text = (answer_text or "").strip()
 
-    seen = set()
+    lines = [
+        "**Answer**",
+        answer_text,
+        "",
+        "**Relevant excerpts**",
+    ]
+
+    seen_labels = set()
     count = 0
-    for sn in getattr(resp, "source_nodes", []) or []:
-        node = sn.node
-        meta = (getattr(node, "metadata", {}) or {})
-        clause_num = meta.get("clause_num")
-        clause_title = meta.get("clause_title")
-        page = meta.get("page_label") or meta.get("page")
 
+    for sn in (getattr(resp, "source_nodes", []) or []):
+        if count >= max_items:
+            break
+
+        node = sn.node
+        meta = getattr(node, "metadata", {}) or {}
+
+        clause_label = meta.get("clause_label")
+        clause_num   = meta.get("clause_num")
+        clause_title = meta.get("clause_title")
+        page         = meta.get("page_label") or meta.get("page")
+
+        # Build a human-readable label
         label = None
-        if clause_num or clause_title:
-            label = f"Clause {clause_num}: {clause_title}" if clause_num else clause_title
+        if clause_label and clause_title:
+            label = f"Clause {clause_label}: {clause_title}"
+        elif clause_label:
+            label = f"Clause {clause_label}"
+        elif clause_num and clause_title:
+            label = f"Clause {clause_num}: {clause_title}"
+        elif clause_title:
+            label = clause_title
+
         if not label:
             label = detect_clause_label_from_text(node.text or "")
         if not label:
             label = f"Page {page}" if page is not None else "Clause (unspecified)"
 
-        key = (label, (node.text or "")[:80])
-        if key in seen:
-            continue
-        seen.add(key)
+        short_label = _short_clause_label(label)
 
-        lines.append(f"• *{label}* — “{excerpt(node.text)}”")
+        # Dedup by short label so we don't repeat the same clause
+        if short_label in seen_labels:
+            continue
+        seen_labels.add(short_label)
+
+        # Create the excerpt body
+        raw_quote = excerpt(node.text or "")
+        quote_body = _strip_clause_prefix(raw_quote)
+
+        combined = f"{quote_body} ({short_label})"
+
+        # single blockquote line; pretty_lease_output will wrap it in grey
+        lines.append(f"> {combined}")
+        lines.append("")
         count += 1
 
     if count < min_items:
-        lines.append("• _No clearly relevant clauses were found above the confidence threshold._")
+        lines.append("> _No clearly relevant clauses were found above the confidence threshold._")
 
-    return "\n".join(lines)
-
+    return "\n".join(lines).strip()
 
 
 def pretty_lease_output(raw: str) -> str:
     """
-    Format lease_qna output as HTML for UI rendering.
-    Assumes the UI will render with unsafe_allow_html=True / dangerouslySetInnerHTML.
+    Convert our markdown-ish answer into HTML suitable for the UI.
+    - Removes the "**Answer**" heading
+    - Renders "Relevant excerpts from your lease:" header
+    - Turns each pair of blockquote lines into a styled <blockquote>
     """
-    text = raw.strip()
+    text = (raw or "").strip()
 
-    # 1. Remove the "**Answer**" prefix completely.
+    # 1. Remove the "**Answer**" prefix.
     text = re.sub(
         r"\*\*Answer\*\*[:\s]*",
         "",
@@ -296,41 +361,72 @@ def pretty_lease_output(raw: str) -> str:
         flags=re.IGNORECASE,
     )
 
-    # 2. Replace "**Relevant excerpts**" with a styled subheading + spacing.
-    #    We insert <br><br> above and below to force visual separation.
+    # 2. Replace "**Relevant excerpts**" with styled HTML heading.
     text = re.sub(
-        r"\*\*Relevant excerpts\*\*[:\s]*",
+        r"\*\*Relevant excerpts\*\*[: ]*\n?",
         "<br><br>"
         "<div style='font-size:0.95em; font-weight:600; color:#000;'>"
         "Relevant excerpts from your lease:"
         "</div>"
-        "<br>",
+        "<br>\n",   # <-- ensure the first '>' starts on a new line
         text,
         flags=re.IGNORECASE,
     )
 
-    # 3. Strip raw markdown emphasis chars from the lease text
-    #    (the OCR/pdf often leaves random * and _ that render as italics or squished text).
-    text = re.sub(r"[*_]{1,2}", "", text)
 
-    # 4. Put each bullet on its own line in HTML.
-    #    We'll turn any inline " • " into "<br>• ".
+    
+    # 3. Convert markdown blockquotes into HTML blockquotes.
+    lines = text.splitlines()
+    new_lines = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.lstrip()
+
+        # treat any variant of ">...", "> …", ">   …" as a blockquote
+        if stripped.startswith(">"):
+            body = stripped[1:].lstrip()   # drop ">" and any spaces
+            quote = body
+            label = ""
+
+            # Backwards-compat: if the *next* line is also a blockquote,
+            # treat it as the label line.
+            if i + 1 < len(lines):
+                next_stripped = lines[i + 1].lstrip()
+                if next_stripped.startswith(">"):
+                    label = next_stripped[1:].lstrip()
+                    i += 1  # consume label line
+
+            block = (
+                "<blockquote style='border-left:3px solid #ddd; padding-left:12px; "
+                "margin:8px 0; font-size:0.95em;'>"
+                f"{quote}"
+                + (f"<br><span style='font-style:italic;'>{label}</span>" if label else "")
+                + "</blockquote>"
+            )
+            new_lines.append(block)
+        else:
+            new_lines.append(line)
+        i += 1
+
+    text = "\n".join(new_lines)
+
+    # 4. Keep old bullet logic just in case there are '•'
     text = re.sub(r"\s*•\s*", "<br>• ", text)
 
-    # 5. Bold only the clause/page labels after the bullet.
-    #    Example: • Clause 200: ... → • <b>Clause 200:</b> ...
+    # 5. Bold 'Clause X:' or 'Page Y:' if they appear in bullets/plain text
     text = re.sub(
-        r"(•\s*)(Clause\s*\d+[^:]*:)",
+        r"(•\s*)(Clause\s*\d+[A-Za-z0-9() ]*?:)",
         r"\1<b>\2</b>",
         text,
     )
     text = re.sub(
-        r"(•\s*)(Page\s*\d+[^:]*:)",
+        r"(•\s*)(Page\s*\d+[A-Za-z0-9() ]*?:)",
         r"\1<b>\2</b>",
         text,
     )
 
-    # 6. Collapse any triple <br> down to double so spacing isn't huge.
+    # 6. Collapse excessive <br>
     text = re.sub(r"(<br>\s*){3,}", "<br><br>", text)
 
     # 7. Trim leading/trailing whitespace/br
