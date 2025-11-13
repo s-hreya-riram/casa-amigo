@@ -1,35 +1,21 @@
 from typing import Optional, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, UUID4
 import requests
 from utils.current_auth import get_current_auth
 from utils.utils import to_utc_iso
 import os
 import streamlit as st
-import threading
-from pydantic import BaseModel, UUID4
-from uuid import UUID, uuid4  # Add UUID import
+from uuid import UUID, uuid4
+from openai import OpenAI
 
-# Change the helper model to use UUID instead of UUID4
 class ReminderPayload(BaseModel):
-    user_id: UUID  # Changed from UUID4 to UUID - accepts any UUID version
+    user_id: UUID
     reminder_type_id: int
     description: str
     status: str
     reminder_date: str | None = None
-    reminder_id: UUID  # Changed from UUID4 to UUID
+    reminder_id: UUID
     recurring_rule: str | None = None
-
-# TODO move this to a shared util 
-def _get_api_base() -> str:
-    # 1. Try Streamlit Secrets first (for cloud deployment)
-    try:
-        if "api" in st.secrets and "base_url" in st.secrets["api"]:
-            return st.secrets["api"]["base_url"].rstrip("/")
-    except Exception:
-        pass # Ignore failure if not in a Streamlit context
-
-    # 2. Fallback to ENV var or local
-    return os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
 
 class ReminderInput(BaseModel):
     action: Optional[Literal["create", "list", "send", "cancel"]] = Field(
@@ -52,12 +38,87 @@ class ReminderInput(BaseModel):
         "demo_user", description="Hardcoded until auth is added."
     )
 
+def _get_api_base() -> str:
+    try:
+        if "api" in st.secrets and "base_url" in st.secrets["api"]:
+            return st.secrets["api"]["base_url"].rstrip("/")
+    except Exception:
+        pass
+    return os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
+
 def _auth_headers(token):
-    # central place for auth header
     return {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
+
+def _generate_email_friendly_description(task_label: str, reminder_type_id: int, llm_client) -> str:
+    """
+    Use OpenAI to generate a friendly, professional email-ready description.
+    Returns a structured description that Lambda can use directly.
+    
+    Args:
+        task_label: The task description
+        reminder_type_id: Type of reminder (1-6)
+        llm_client: OpenAI client instance from the agent
+    """
+    type_context = {
+        1: "signing a Letter of Intent for a rental property",
+        2: "paying the security deposit for a rental property",
+        3: "signing the lease agreement for a rental property",
+        4: "paying monthly rent",
+        5: "reviewing lease renewal options or giving notice",
+        6: "moving out and returning keys"
+    }
+    
+    context = type_context.get(reminder_type_id, "completing a rental task")
+    
+    try:
+        client = llm_client
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an assistant that creates friendly, professional email reminders for rental tasks. "
+                        "Generate a clear, warm reminder message that includes:\n"
+                        "1. A friendly subject line (max 60 chars)\n"
+                        "2. A brief, encouraging body message (2-3 sentences)\n"
+                        "Format as JSON: {\"subject\": \"...\", \"body\": \"...\"}"
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"Create a reminder for: {task_label}. Context: {context}"
+                }
+            ],
+            temperature=0.7,
+            max_tokens=200,
+            response_format={"type": "json_object"}
+        )
+        
+        import json
+        result = json.loads(response.choices[0].message.content)
+        
+        # Return structured format that Lambda can parse
+        return json.dumps({
+            "subject": result.get("subject", f"Reminder: {task_label}"),
+            "body": result.get("body", f"This is a friendly reminder to {task_label}."),
+            "task": task_label,
+            "type": context
+        })
+        
+    except Exception as e:
+        print(f"[REMINDER] Failed to generate email content: {e}")
+        # Fallback to simple format
+        return json.dumps({
+            "subject": f"Reminder: {task_label}",
+            "body": f"This is a friendly reminder to {task_label}.",
+            "task": task_label,
+            "type": context
+        })
 
 def notification_workflow_tool(
     input: ReminderInput | dict | None = None,
@@ -66,6 +127,10 @@ def notification_workflow_tool(
     """
     Create / list / send (and stub cancel) reminders by
     talking to the running FastAPI backend.
+    
+    Args:
+        input: Reminder input data
+        **kwargs: Additional arguments including auth and llm_client
     """
     print(f"[REMINDER] RAW INPUT: input={input}, type={type(input)}")
     print(f"[REMINDER] KWARGS: {kwargs}")
@@ -81,7 +146,11 @@ def notification_workflow_tool(
         data = {}
     data.update(kwargs or {})
     
+    # Extract llm_client from kwargs (don't add to data dict)
+    llm_client = kwargs.get('llm_client')
+    
     print(f"[REMINDER] NORMALIZED DATA: {data}")
+    print(f"[REMINDER] Has LLM client: {llm_client is not None}")
 
     # Get auth from injected kwargs
     auth = data.get('_injected_auth') or kwargs.get('_injected_auth', {})
@@ -95,7 +164,7 @@ def notification_workflow_tool(
         return "Please log in first before attempting to list reminders."
 
     # ✅ Extract action (with default)
-    action = (data.get("action") or "list").lower()  # Default to "list" if not specified
+    action = (data.get("action") or "list").lower() # Default to "list" if not specified
     print(f"[REMINDER] ACTION: {action}")
     reminder_type_id = data.get("reminder_type_id")
     description = data.get("description")
@@ -140,20 +209,17 @@ def notification_workflow_tool(
                 rid = r.get("reminder_id") or r.get("id") or "?"
                 what = r.get("description") or "Reminder"
                 status = r.get("status") or "active"
-
                 # time can be one-off (reminder_date) or recurring (recurrence_pattern)
                 when = (
                     r.get("reminder_date")
                     or r.get("recurrence_pattern")
                     or "(no time set)"
                 )
-
                 lines.append(f"• {what} — {when} [{status}] (id: {rid})")
 
             return "\n".join(lines)
 
         except Exception as e:
-            #debug_log("tool_error", tool="notification_workflow_tool", error=str(e))
             print(f"[REMINDER] EXCEPTION in list: {type(e).__name__}: {e}")
             import traceback
             traceback.print_exc()
@@ -177,16 +243,14 @@ def notification_workflow_tool(
                 return f"I couldn't send reminder {reminder_id} (server error)."
             return f"Okay — I've sent reminder {reminder_id} now."
         except Exception as e:
-            #debug_log("tool_error", tool="notification_workflow_tool", error=str(e))
             return f"Sorry — I tried to send reminder {reminder_id} but hit a network error."
 
     # ------------------------------------------------------------------
-    # CANCEL (stub, unless you have PATCH /reminders/{id})
+    # CANCEL
     # ------------------------------------------------------------------
     if action == "cancel":
         if not reminder_id:
             return "Which reminder should I cancel? Please give me the id."
-        # TODO when backend adds: PATCH /reminders/{id} status='cancelled'
         return f"Done — I'll cancel reminder {reminder_id} once the server supports it."
 
     # ------------------------------------------------------------------
@@ -202,10 +266,15 @@ def notification_workflow_tool(
             )
 
         try:
+            # Generate email-friendly description using injected LLM client
+            email_description = _generate_email_friendly_description(
+                task_label, reminder_type_id, llm_client
+            ) if llm_client else task_label
+            
             payload_obj = ReminderPayload(
                 user_id=user_id,
                 reminder_type_id=4,
-                description=task_label,
+                description=email_description,
                 status="active",
                 recurring_rule=recurring_rule,
                 reminder_id=uuid4()
@@ -248,17 +317,20 @@ def notification_workflow_tool(
     print(f"[REMINDER] Converted reminder_date to UTC ISO: {reminder_date}")
 
     try:
-        # Create Pydantic model instance for validation
+        # Generate email-friendly description using injected LLM client
+        email_description = _generate_email_friendly_description(
+            task_label, reminder_type_id, llm_client
+        ) if llm_client else task_label
+        
         payload_obj = ReminderPayload(
             user_id=user_id,
             reminder_type_id=reminder_type_id,
-            description=task_label,
+            description=email_description,
             status="active",
             reminder_date=reminder_date,
             reminder_id=uuid4()
         )
         
-        # Convert to JSON-serializable dict
         payload = payload_obj.model_dump(mode='json')
         print("Creating reminder with payload:", payload)
 
@@ -277,10 +349,7 @@ def notification_workflow_tool(
         print(f"[REMINDER] Create response body: {created}")
         rid = created.get("reminder_id") or created.get("id") or "(no id)"
 
-        return (
-            f"Got it — I'll remind you to {task_label} on {reminder_date}. "
-            f"I've saved it as reminder {rid}."
-        )
+        return f"Perfect! I've set a reminder to {task_label.lower()}. You'll get an email when it's time."
 
     except Exception as e:
         print(f"[REMINDER] EXCEPTION in create: {type(e).__name__}: {e}")
