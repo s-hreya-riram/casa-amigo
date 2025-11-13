@@ -81,6 +81,11 @@ async def root():
     """Simple endpoint for health checks."""
     return {"status": "ok", "service": "fastapi"}
 
+# ==================== FOR PINGS FROM GITHUB/UPTIMEROBOT ====================
+# This is to ensure clean logs for pings from uptime monitoring services
+@app.api_route("/", methods=["GET", "HEAD"])
+async def root():
+    return {"status": "ok"}
 # ==================== AUTH ROUTES ====================
 @app.post("/auth/signup", tags=["Auth"])
 async def signup(email: str, name: str, password: str, user_type: str = "tenant"):
