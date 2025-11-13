@@ -1,0 +1,27 @@
+name: Keep Render Service Alive
+
+on:
+  schedule:
+    # Runs every 14 minutes as a workaround for Render's inactivity timeout
+    - cron: '*/14 * * * *'
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Ping Render Service
+        run: |
+          echo "Pinging https://casa-amigo-api.onrender.com..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://casa-amigo-api.onrender.com)
+          echo "Response status: $response"
+          
+          if [ $response -eq 200 ] || [ $response -eq 301 ] || [ $response -eq 302 ]; then
+            echo "✓ Service is alive!"
+          else
+            echo "⚠ Warning: Unexpected status code $response"
+          fi
+        
+      - name: Log timestamp
+        run: echo "Last ping at $(date -u)"
