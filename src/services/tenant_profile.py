@@ -1,6 +1,6 @@
 from services.base import BaseService
 from services.schema import TenantProfilesInsert, TenantProfilesUpdate
-from core.exceptions import NotFoundError
+from services.exceptions import NotFoundError
 from uuid import UUID
 from typing import Dict
 

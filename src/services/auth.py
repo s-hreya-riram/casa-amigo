@@ -1,5 +1,5 @@
 from .schema import UsersInsert
-from core.exceptions import AuthenticationError, ValidationError
+from services.exceptions import AuthenticationError, ValidationError
 from typing import Dict
 import hashlib
 import secrets

@@ -18,7 +18,7 @@ from services.schema import (
 )
 
 # Import exceptions
-from core.exceptions import (
+from services.exceptions import (
     NotFoundError, ValidationError, AuthenticationError, OperationError
 )
 

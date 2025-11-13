@@ -6,7 +6,7 @@ Lambda updates the status of reminders and updates records in reminder_notificat
 
 from services.base import BaseService
 from services.schema import RemindersInsert, RemindersUpdate
-from core.exceptions import NotFoundError
+from services.exceptions import NotFoundError
 from uuid import UUID
 from datetime import datetime
 from typing import List, Dict
