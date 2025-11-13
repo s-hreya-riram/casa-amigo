@@ -1,4 +1,4 @@
-from core.exceptions import OperationError, NotFoundError
+from services.exceptions import OperationError, NotFoundError
 from modules.supabase_instance import supabase_client
 from typing import List, Dict, Any, Optional
         
