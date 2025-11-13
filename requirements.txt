@@ -75,5 +75,5 @@ gTTS
 # Evaluation
 rouge-score
 PyPDF2
-sentence-transformer==5.1.2
+sentence-transformers == 5.1.2
 transformers==4.57.1
