@@ -61,40 +61,148 @@ class StreamlitApp:
                 background: #FFFFFF;
             }}
 
-            /* Sidebar gradient */
+            /* === SIDEBAR STYLING - CONSISTENT TYPOGRAPHY === */
             [data-testid="stSidebar"] > div:first-child {{
                 background: linear-gradient(180deg, {self.NAVY} 0%, {self.BLUE} 55%, {self.RED} 130%);
                 color: #FFFFFF;
+                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
             }}
-            [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2,
-            [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4,
+
+            /* All text elements in sidebar - unified styling */
+            [data-testid="stSidebar"] h1, 
+            [data-testid="stSidebar"] h2,
+            [data-testid="stSidebar"] h3, 
+            [data-testid="stSidebar"] h4,
             [data-testid="stSidebar"] p,
-            [data-testid="stSidebar"] label {{ color: #FFFFFF !important; }}
-            [data-testid="stSidebar"] hr {{
-                border: none; border-top: 1px solid rgba(255,255,255,0.3);
-                margin: .6rem 0 1rem 0;
+            [data-testid="stSidebar"] label,
+            [data-testid="stSidebar"] .stCaption,
+            [data-testid="stSidebar"] .stSuccess,
+            [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p,
+            [data-testid="stSidebar"] span {{
+                color: #FFFFFF !important;
+                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif !important;
+                font-weight: 500 !important;
             }}
 
-            /* Motto */
+            /* Headings hierarchy */
+            [data-testid="stSidebar"] h1 {{
+                font-size: 1.8rem !important;
+                font-weight: 700 !important;
+                margin: 1rem 0 0.8rem 0 !important;
+            }}
+
+            [data-testid="stSidebar"] h2 {{
+                font-size: 1.4rem !important;
+                font-weight: 650 !important;
+                margin: 0.8rem 0 0.6rem 0 !important;
+            }}
+
+            [data-testid="stSidebar"] h3 {{
+                font-size: 1.1rem !important;
+                font-weight: 600 !important;
+                margin: 0.6rem 0 0.5rem 0 !important;
+            }}
+
+            /* Regular text */
+            [data-testid="stSidebar"] p,
+            [data-testid="stSidebar"] label {{
+                font-size: 0.9rem !important;
+                font-weight: 500 !important;
+                line-height: 1.4 !important;
+                margin: 0.3rem 0 !important;
+            }}
+
+            /* Captions and small text */
+            [data-testid="stSidebar"] .stCaption,
+            [data-testid="stSidebar"] small {{
+                font-size: 0.8rem !important;
+                font-weight: 400 !important;
+                opacity: 0.9 !important;
+                margin: 0.2rem 0 !important;
+            }}
+
+            /* Success messages */
+            [data-testid="stSidebar"] .stSuccess {{
+                font-size: 0.85rem !important;
+                font-weight: 500 !important;
+                background: rgba(72, 187, 120, 0.2) !important;
+                border-left: 3px solid #48bb78 !important;
+                padding: 0.5rem !important;
+                border-radius: 6px !important;
+                margin: 0.5rem 0 !important;
+            }}
+
+            /* Form labels */
+            [data-testid="stSidebar"] .stTextArea label,
+            [data-testid="stSidebar"] .stTextInput label,
+            [data-testid="stSidebar"] .stSelectbox label {{
+                font-size: 0.9rem !important;
+                font-weight: 600 !important;
+                color: rgba(255, 255, 255, 0.95) !important;
+                margin-bottom: 0.3rem !important;
+            }}
+
+            /* Motto/tagline */
             .ca-tagline-strong {{
-                text-align: center;
-                font-style: italic;
-                color: #FFFFFF;
-                opacity: 0.95;
-                margin: .35rem 0 .6rem 0;
-                line-height: 1.35;
-                font-weight: 600;
+                text-align: center !important;
+                font-style: italic !important;
+                color: #FFFFFF !important;
+                opacity: 0.95 !important;
+                margin: 0.4rem 0 0.8rem 0 !important;
+                line-height: 1.4 !important;
+                font-weight: 600 !important;
+                font-size: 0.95rem !important;
+                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif !important;
             }}
 
+            /* Voice section text */
+            .voice-hint {{
+                color: rgba(255,255,255,0.9) !important;
+                font-size: 0.88rem !important;
+                line-height: 1.5 !important;
+                margin-bottom: 0.7rem !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 0.5rem !important;
+                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif !important;
+                font-weight: 500 !important;
+            }}
+
+            /* Footer */
+            .ca-footer {{ 
+                text-align: center !important; 
+                font-size: 0.85rem !important; 
+                color: rgba(255,255,255,0.8) !important; 
+                margin-top: 1rem !important;
+                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif !important;
+                font-weight: 500 !important;
+            }}
+
+            /* Separators */
+            [data-testid="stSidebar"] hr,
+            [data-testid="stSidebar"] .ca-sep {{
+                border: none !important; 
+                border-top: 1px solid rgba(255,255,255,0.25) !important;
+                margin: 0.8rem 0 !important;
+            }}
+
+            /* === FORM ELEMENTS IN SIDEBAR === */
+            
             /* Red focus for textareas and chat input */
             [data-testid="stSidebar"] textarea,
             [data-testid="stChatInput"] textarea {{
-                background: #FFFFFF !important; color: #000 !important;
-                border: 2px solid {self.RED}80 !important; border-radius: 10px !important;
-                font-size: 1rem !important; padding: 0.6rem 1rem !important;
-                outline: none !important; box-shadow: none !important;
+                background: #FFFFFF !important; 
+                color: #000 !important;
+                border: 2px solid {self.RED}80 !important; 
+                border-radius: 10px !important;
+                font-size: 0.9rem !important; 
+                padding: 0.6rem 1rem !important;
+                outline: none !important; 
+                box-shadow: none !important;
                 transition: border 0.15s ease-in-out;
+                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif !important;
             }}
+            
             [data-testid="stSidebar"] textarea:focus,
             [data-testid="stChatInput"] textarea:focus {{
                 border: 2px solid {self.RED} !important;
@@ -103,36 +211,80 @@ class StreamlitApp:
 
             /* Buttons (pill) */
             .stButton>button {{
-                border: 2px solid {self.RED}; color: {self.RED};
-                background: transparent; border-radius: 999px;
-                padding: .55rem 1rem; font-weight: 600;
-                transition: all 0.2s ease-in-out;
+                border: 2px solid {self.RED} !important; 
+                color: {self.RED} !important;
+                background: transparent !important; 
+                border-radius: 999px !important;
+                padding: 0.55rem 1rem !important; 
+                font-weight: 600 !important;
+                transition: all 0.2s ease-in-out !important;
+                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif !important;
+                font-size: 0.9rem !important;
             }}
-            .stButton>button:hover {{ background: {self.RED} !important; color: #FFF !important; }}
+            .stButton>button:hover {{ 
+                background: {self.RED} !important; 
+                color: #FFF !important; 
+            }}
+
+            /* Selectbox styling */
+            [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] {{
+                border-radius: 12px !important;
+                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif !important;
+            }}
+            
+            [data-testid="stSidebar"] .stSelectbox {{
+                margin-top: 0.4rem !important;
+                margin-bottom: 0.6rem !important;
+            }}
+
+            /* === MAIN CONTENT STYLING === */
 
             /* Chat bubbles */
             .ca-bubble {{
-                border-radius: 18px; padding: 14px 16px; margin: 6px 0;
-                color: #0A0A0A; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+                border-radius: 18px; 
+                padding: 14px 16px; 
+                margin: 6px 0;
+                color: #0A0A0A; 
+                backdrop-filter: blur(6px); 
+                -webkit-backdrop-filter: blur(6px);
                 box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
             }}
-            .ca-user {{ background: rgba(216, 67, 57, 0.08); border-left: 4px solid {self.RED}; }}
-            .ca-assist {{ background: rgba(44, 75, 142, 0.08); border-left: 4px solid {self.BLUE}; }}
+            .ca-user {{ 
+                background: rgba(216, 67, 57, 0.08); 
+                border-left: 4px solid {self.RED}; 
+            }}
+            .ca-assist {{ 
+                background: rgba(44, 75, 142, 0.08); 
+                border-left: 4px solid {self.BLUE}; 
+            }}
 
             /* Avatars larger & circular */
             [data-testid="stChatMessage"] img {{
-                border-radius: 50% !important; border: 3px solid #fff;
-                width: 70px !important; height: 70px !important; object-fit: cover;
+                border-radius: 50% !important; 
+                border: 3px solid #fff;
+                width: 70px !important; 
+                height: 70px !important; 
+                object-fit: cover;
             }}
 
             /* Typing indicator */
             .ca-typing {{
-                display:inline-block; border-radius: 18px; padding: 12px 16px; margin: 6px 0;
-                background: rgba(44, 75, 142, 0.08); border-left: 4px solid {self.BLUE};
+                display:inline-block; 
+                border-radius: 18px; 
+                padding: 12px 16px; 
+                margin: 6px 0;
+                background: rgba(44, 75, 142, 0.08); 
+                border-left: 4px solid {self.BLUE};
             }}
             .ca-dot {{
-                display:inline-block; width:6px; height:6px; margin:0 2px;
-                background:{self.BLUE}; border-radius:50%; animation: ca-bounce 1s infinite;
+                display:inline-block; 
+                width:6px; 
+                height:6px; 
+                margin:0 2px;
+                background:{self.BLUE}; 
+                border-radius:50%; 
+                animation: ca-bounce 1s infinite;
             }}
             .ca-dot:nth-child(2) {{ animation-delay: .15s; }}
             .ca-dot:nth-child(3) {{ animation-delay: .3s; }}
@@ -141,94 +293,15 @@ class StreamlitApp:
                 40% {{ transform: scale(1.6); opacity:1; }}
             }}
 
-            .ca-footer {{ text-align:center; font-size:.85rem; color:rgba(255,255,255,0.8); margin-top:10px; }}
-            .ca-main-footer {{ text-align:center; font-size:.85rem; color:#666; margin-top:14px; opacity:.8; }}
-
-            /* --- Consistent typography --- */
-            html, body, [class^="css"] {{
-                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-            }}
-            [data-testid="stSidebar"] h3,
-            [data-testid="stSidebar"] label {{ color: #ffffff !important; }}
-
-            /* Tighten spacing */
-            [data-testid="stSidebar"] h3 {{ margin: 0.35rem 0 0.5rem 0 !important; }}
-            [data-testid="stSidebar"] label {{ font-weight: 600 !important; opacity: 0.95; }}
-
-            /* Selectbox look */
-            [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] {{
-                border-radius: 12px !important;
-            }}
-            [data-testid="stSidebar"] .stSelectbox {{
-                margin-top: 0.4rem !important;
-                margin-bottom: 0.6rem !important;
+            .ca-main-footer {{ 
+                text-align:center; 
+                font-size:.85rem; 
+                color:#666; 
+                margin-top:14px; 
+                opacity:.8; 
             }}
 
-            /* Inputs: light box + black text */
-            div[data-testid="stExpander"] input {{
-                background: #fff !important;
-                border: 1px solid rgba(255,255,255,0.6) !important;
-                border-radius: 8px !important;
-                color: #000 !important;
-                font-size: 0.9rem !important;
-                padding: 0.4rem 0.6rem !important;
-            }}
-            div[data-testid="stExpander"] input:focus {{
-                outline: none !important;
-                border: 1px solid {self.RED} !important;
-                box-shadow: 0 0 5px rgba(216,67,57,0.3) !important;
-            }}
-            
-            /* Buttons */
-            div[data-testid="stExpander"] .stButton > button {{
-                border: none !important;
-                background: {self.RED} !important;
-                color: #fff !important;
-                border-radius: 999px !important;
-                font-weight: 600 !important;
-                font-size: 0.9rem !important;
-                padding: 0.45rem 1.1rem !important;
-                width: 100%;
-                transition: all 0.2s ease-in-out;
-            }}
-            div[data-testid="stExpander"] .stButton > button:hover {{
-                background: #b7352d !important;
-                color: #fff !important;
-                transform: translateY(-1px);
-            }}
-
-            /* Status + label colors */
-            div[data-testid="stExpander"] label,
-            div[data-testid="stExpander"] p,
-            div[data-testid="stExpander"] .stCaption,
-            div[data-testid="stExpander"] .stInfo {{
-                color: rgba(255,255,255,0.9) !important;
-                font-size: 0.9rem !important;
-            }}
-
-            /* Expander title styling */
-            div[data-testid="stExpander"] > div:first-child p {{
-                font-size: 1.1rem !important;
-                font-weight: 700 !important;
-                color: #FFFFFF !important;
-                text-align: center !important;
-            }}
-
-            /* Voice section in sidebar */
-            .voice-section {{
-                padding: 0.8rem 0.5rem;
-                margin: 0.5rem 0;
-            }}
-            
-            .voice-hint {{
-                color: rgba(255,255,255,0.9);
-                font-size: 0.88rem;
-                line-height: 1.5;
-                margin-bottom: 0.7rem;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }}
+            /* === VOICE SECTION AUDIO RECORDER === */
             
             /* Make all parent divs of the audio recorder transparent */
             div[data-testid="stAudio"],
@@ -272,17 +345,6 @@ class StreamlitApp:
             [data-testid="column"] > div {{
                 gap: 0 !important;
             }}
-
-
-            
-            /* Subtle separators */
-            [data-testid="stSidebar"] .ca-sep {{
-                border-top: 1px solid rgba(255,255,255,0.25);
-                margin: 0.9rem 0 0.9rem 0;
-            }}
-
-            /* ---- IMPORTANT: do NOT fix-position the chat input ---- */
-            /* (No [data-testid="stChatInputContainer"] position: fixed here) */
             </style>
             """,
             unsafe_allow_html=True,
@@ -503,14 +565,17 @@ class StreamlitApp:
 
             auth = st.session_state["auth"]
             if auth["logged_in"]:
-                st.success(f"Logged in as: {auth.get('email') or 'user'}")
+                # Single clean status line
+                st.markdown(
+                    f"<p style='color: #FFFFFF; font-size: 0.9rem; font-weight: 500; margin: 0.5rem 0;'>✅ Signed in as <span style='color: #FFFFFF; font-weight: 600;'>{auth.get('email') or 'user'}</span></p>",
+                    unsafe_allow_html=True
+                )
             else:
-                st.caption("You're not logged in.")
-            
-            if st.session_state.get("auth", {}).get("logged_in"):
-                st.caption(f"🔐 Auth persisted: {st.session_state['auth'].get('email')}")
-                st.caption(f"User ID: {st.session_state['auth'].get('user_id')}")
-            
+                st.markdown(
+                    "<p style='color: rgba(255,255,255,0.8); font-size: 0.9rem; font-weight: 400; margin: 0.5rem 0;'>🔒 Not signed in</p>",
+                    unsafe_allow_html=True
+                )
+
             st.divider()
 
             # Voice Input Section - Simple and Clean
