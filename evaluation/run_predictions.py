@@ -257,7 +257,7 @@ from sentence_transformers import CrossEncoder
 
 class SimpleCrossEncoderReranker:
     """Version-agnostic reranker using a sentence-transformers CrossEncoder."""
-    def __init__(self, model_name="cross-encoder/ms-marco-MiniLM-L-6-v2", top_n=10, batch_size=16):
+    def __init__(self, model_name="mixedbread-ai/mxbai-rerank-large-v1", top_n=10, batch_size=16):
         self.model_name = model_name
         self.top_n = top_n
         self.batch_size = batch_size
@@ -304,7 +304,7 @@ def ranked_labels_from_query(
 
     # 1) retrieve deeper with embeddings
     qe = index.as_query_engine(
-        similarity_top_k=max(25, k),
+        similarity_top_k=max(15, k),
         response_mode="compact"
     )
     resp = qe.query(q_exp)

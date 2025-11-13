@@ -42,7 +42,7 @@ class DocumentIndexManager:
             )
         if persist_dir is None:
             persist_dir = os.path.join(
-                os.path.dirname(__file__), "..", "..", "pdf_index_v4"
+                os.path.dirname(__file__), "..", "..", "pdf_index_v2"
             )
 
         self.pdf_path = pdf_path
