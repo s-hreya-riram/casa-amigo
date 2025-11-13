@@ -11,7 +11,7 @@ for candidate in [ROOT / ".env", ROOT / "src" / ".env"]:
         break
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PDF  = os.environ.get("PDF_PATH", str(ROOT / "data" / "contracts" / "Track_B_Tenancy_Agreement.pdf"))
-OUT  = os.environ.get("PERSIST_DIR", str(ROOT / "pdf_index_v2"))
+OUT  = os.environ.get("PERSIST_DIR", str(ROOT / "pdf_index_v3"))
 
 # Load src/core/document_manager.py WITHOUT importing src.core.__init__
 dm_path = ROOT / "src" / "core" / "document_manager.py"

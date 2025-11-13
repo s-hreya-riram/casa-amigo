@@ -3,26 +3,47 @@ import re
 import streamlit as st
 from llama_index.core import VectorStoreIndex, StorageContext, load_index_from_storage
 from llama_index.core.schema import TextNode
-from llama_index.core import SimpleDirectoryReader
+from llama_index.core import SimpleDirectoryReader, Settings
+from llama_index.embeddings.openai import OpenAIEmbedding
 
-# Detect clauses and sub-clauses: e.g. "5(b) Interest for Rent Arrears"
+# Ensure we always use the same embedding model for this index
+Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-large")
+
+# More forgiving clause detector, e.g.
+# "2(b) SECURITY DEPOSIT"
+# "2 (b) Security Deposit"
+# "Clause 5 (f) Option To Renew"
 CLAUSE_RE = re.compile(
     r"""(?imx)
-    ^\s*(?:Clause\s*)?
-    (?P<label>\d{1,4}(?:\([a-z]\))?)     # e.g. 5(b)
-    \s*[:.\-–]?\s*(?P<title>[A-Za-z][^\n]{0,80})
+    ^\s*(?:Clause\s*)?                 # optional 'Clause'
+    (?P<label>\d{1,4}\s*\(?[a-zA-Z]?\)?)  # 5(b), 5 (b), 2023(a)
+    [\s:.\-–]*                         # separators / spaces
+    (?P<title>[A-Za-z][^\n\r]{0,100})  # up to 100 chars of title
     """
 )
 
+
 class DocumentIndexManager:
-    def __init__(self,
-                 pdf_path: str = None,
-                 persist_dir: str = None,
-                 cache_version: int = 1):
+    def __init__(
+        self,
+        pdf_path: str = None,
+        persist_dir: str = None,
+        cache_version: int = 1,
+    ):
         if pdf_path is None:
-            pdf_path = os.path.join(os.path.dirname(__file__), "..", "..", "/data/contracts", "Track_B_Tenancy_Agreement.pdf")
+            # NOTE: no leading '/' in 'data' – otherwise join() ignores the prefix.
+            pdf_path = os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "..",
+                "data",
+                "contracts",
+                "Track_B_Tenancy_Agreement.pdf",
+            )
         if persist_dir is None:
-            persist_dir = os.path.join(os.path.dirname(__file__), "..", "..", "pdf_index_v2")
+            persist_dir = os.path.join(
+                os.path.dirname(__file__), "..", "..", "pdf_index_v4"
+            )
 
         self.pdf_path = pdf_path
         self.persist_dir = persist_dir
@@ -31,49 +52,40 @@ class DocumentIndexManager:
 
     # ---------- Clause-level splitting ----------
     def _split_into_clauses(self, text: str):
+        """
+        Returns list of (label, title, body_text) for each clause.
+        We scan line-by-line looking for clause headers.
+        """
         lines = text.splitlines()
         out, current = [], []
         current_label, current_title = None, None
 
         def flush():
             nonlocal current, current_label, current_title
-            if current_label:
-                out.append((current_label, current_title or "", "\n".join(current).strip()))
+            if current_label and current:
+                body = "\n".join(current).strip()
+                out.append((current_label, current_title or "", body))
             current, current_label, current_title = [], None, None
 
         for line in lines:
             m = CLAUSE_RE.match(line)
             if m:
+                # new clause header -> flush previous
                 flush()
-                current_label = m.group("label")
-                current_title = m.group("title").strip(" -–:")
-                continue
-            current.append(line)
+                # normalise label like "5 (b)" -> "5(b)"
+                raw_label = re.sub(r"\s+", "", m.group("label")).lower()
+                current_label = raw_label
+                current_title = (m.group("title") or "").strip(" -–:")
+            else:
+                current.append(line)
 
         flush()
         return out
 
-    def _pdf_to_nodes(self):
-        reader = SimpleDirectoryReader(input_files=[self.pdf_path])
-        docs = reader.load_data()
-        all_nodes = []
-        for doc in docs:
-            text = doc.text or ""
-            clauses = self._split_into_clauses(text)
-            for label, title, body in clauses:
-                enriched = f"Clause {label}: {title}\n\n{body}".strip()
-                meta = {
-                    "file_name": os.path.basename(self.pdf_path),
-                    "clause_label": label,
-                    "clause_num": re.match(r"\d+", label).group(0),
-                    "clause_title": title,
-                    "page_label": doc.metadata.get("page_label"),
-                }
-                all_nodes.append(TextNode(text=enriched, metadata=meta))
-        return all_nodes
-
     @st.cache_resource
-    def _cached_load_or_build_index(_self, pdf_path: str, persist_dir: str, cache_version: int):
+    def _cached_load_or_build_index(
+        _self, pdf_path: str, persist_dir: str, cache_version: int
+    ):
         """Load or build single-document clause-aware index."""
         if os.path.exists(persist_dir):
             storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
@@ -84,36 +96,22 @@ class DocumentIndexManager:
             reader = SimpleDirectoryReader(input_files=[pdf_path])
             docs = reader.load_data()
             all_nodes = []
+
             for doc in docs:
                 text = doc.text or ""
-                lines = text.splitlines()
-                current_clause = []
-                current_label, current_title = None, None
-                for line in lines:
-                    m = CLAUSE_RE.match(line)
-                    if m:
-                        if current_label and current_clause:
-                            body = "\n".join(current_clause).strip()
-                            enriched = f"Clause {current_label}: {current_title}\n\n{body}"
-                            meta = {
-                                "file_name": os.path.basename(pdf_path),
-                                "clause_label": current_label,
-                                "clause_title": current_title,
-                            }
-                            all_nodes.append(TextNode(text=enriched, metadata=meta))
-                            current_clause = []
-                        current_label = m.group("label")
-                        current_title = m.group("title").strip(" -–:")
-                    else:
-                        current_clause.append(line)
-                # final flush
-                if current_label and current_clause:
-                    body = "\n".join(current_clause).strip()
-                    enriched = f"Clause {current_label}: {current_title}\n\n{body}"
+                clauses = _self._split_into_clauses(text)
+                for label, title, body in clauses:
+                    enriched = f"Clause {label}: {title}\n\n{body}".strip()
+                    # extract bare number part from label, e.g. "5(b)" -> "5"
+                    mnum = re.match(r"(\d{1,4})", label)
+                    num = mnum.group(1) if mnum else None
                     meta = {
                         "file_name": os.path.basename(pdf_path),
-                        "clause_label": current_label,
-                        "clause_title": current_title,
+                        "clause_label": label,      # e.g. "5(b)"
+                        "clause_num": num,          # e.g. "5"
+                        "clause_title": title,      # e.g. "Option To Renew"
+                        # keep page label if present
+                        "page_label": doc.metadata.get("page_label"),
                     }
                     all_nodes.append(TextNode(text=enriched, metadata=meta))
 
@@ -123,17 +121,23 @@ class DocumentIndexManager:
         return index
 
     def _load_or_build_index(self):
-        return self._cached_load_or_build_index(self.pdf_path, self.persist_dir, self.cache_version)
+        return self._cached_load_or_build_index(
+            self.pdf_path, self.persist_dir, self.cache_version
+        )
 
     def rebuild(self):
         """Force rebuild."""
         if os.path.exists(self.persist_dir):
             for root, _, files in os.walk(self.persist_dir, topdown=False):
                 for f in files:
-                    try: os.remove(os.path.join(root, f))
-                    except: pass
-                try: os.rmdir(root)
-                except: pass
+                    try:
+                        os.remove(os.path.join(root, f))
+                    except Exception:
+                        pass
+                try:
+                    os.rmdir(root)
+                except Exception:
+                    pass
         st.cache_resource.clear()
         self.cache_version += 1
         self.index = self._load_or_build_index()

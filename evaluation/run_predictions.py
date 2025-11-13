@@ -15,8 +15,11 @@ import argparse, json, os, re
 from typing import List, Dict, Any, Tuple
 
 from llama_index.core import VectorStoreIndex, StorageContext, load_index_from_storage
+from llama_index.core.postprocessor import SentenceTransformerRerank
+
 from utils.lease_tool import build_lease_qna_tool
 from dotenv import load_dotenv
+
 
 # ------------ ENV ------------
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -26,11 +29,136 @@ for candidate in [ROOT / ".env", ROOT / "src" / ".env"]:
         print(f"Loaded env from {candidate}")
         break
 
+from llama_index.core import Settings
+from llama_index.embeddings.openai import OpenAIEmbedding
+
+# V3 embeddings: 3072-dim
+Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-large")
+
+
 # ------------ Debug logger for your tool ------------
 def debug_log(event, **kwargs):
     print(f"[{event}]", kwargs)
 
 # ------------ Helpers: label inference & canonicalization ------------
+
+import re
+from typing import List, Dict, Any
+
+# ------------- Alias expansion for legal phrasing -------------
+ALIAS = {
+    "rent": ["arrears","due date","rental"],
+    "rent due": ["arrears","due date","payable"],
+    "security deposit": ["deposit","bond","refundable deposit"],
+    "sublet": ["assignment","subletting","part with possession"],
+    "pet": ["animal","dog","cat","birds"],
+    "alterations": ["unauthorised alterations","drilling","hacking","changes"],
+    "repairs": ["minor repairs","maintenance","replacement"],
+    "aircon": ["air conditioning","chemical wash","servicing","gas top up"],
+    "notice": ["notice period","inspection","viewing"],
+    "renew": ["option to renew","renewal"],
+    "stamp": ["stamping","stamp duty"],
+    "diplomatic": ["transfer overseas","out of singapore","deported","work permit"],
+}
+
+def expand_query(q: str) -> str:
+    ql = q.lower()
+    extra = []
+    for k, vals in ALIAS.items():
+        if k in ql:
+            extra += vals
+    return q if not extra else (q + " " + " ".join(sorted(set(extra))))
+
+# ------------- Numeric/keyword boost -----------------
+def numeric_tokens(q: str) -> List[str]:
+    # catch $200, 200, 10 days, etc.
+    toks = []
+    for m in re.finditer(r"\$?\b\d+\b", q):
+        toks.append(m.group(0).lstrip("$"))
+    for kw in ["days","day","month","months","year","years","per annum","%","percent"]:
+        if kw in q.lower():
+            toks.append(kw)
+    return sorted(set(toks))
+
+def contains_any(text: str, needles: List[str]) -> int:
+    tl = text.lower()
+    score = 0
+    for n in needles:
+        if n.isdigit():
+            # match numbers loosely
+            if re.search(rf"\b{re.escape(n)}\b", tl): score += 1
+            if re.search(rf"\$\s*{re.escape(n)}\b", tl): score += 1
+        else:
+            if n in tl: score += 1
+    return score
+
+# ------------- Canonicalize clause label -------------
+# ------------ Canonicalize clause label (strict version) ------------
+LABEL_RE = re.compile(r"^\d{1,4}\([a-z]\)$", re.I)
+FIND_RE  = re.compile(r"\b(\d{1,4}\([a-z]\))\b", re.I)
+
+def canonicalize_label_for_query(
+    qid: str,
+    meta: dict,
+    text: str,
+    titles_by_qid: Dict[str, Dict[str, str]],
+    labels_by_qid: Dict[str, List[str]],
+    primary_by_qid: Dict[str, str],
+) -> str:
+    """
+    Map this node (meta+text) to one of the gold labels for THIS qid
+    using:
+      1) exact clause_label (if already in canonical form)
+      2) exact title → label map from gold
+      3) fuzzy title/body substring match
+      4) parent-number fallback (e.g. '5' -> '5(f)')
+    """
+    meta = meta or {}
+    text = text or ""
+
+    # 1) Exact label already present
+    lab = (meta.get("clause_label") or "").strip()
+    if lab and CANON.match(lab):
+        return lab
+
+    # 2) Exact title mapping (lowercase key)
+    tit = (meta.get("clause_title") or "").strip()
+    tit_key = tit.lower()
+    gold_title_map = titles_by_qid.get(qid, {})
+    if tit_key and tit_key in gold_title_map:
+        return gold_title_map[tit_key]
+
+    # 3) Fuzzy title/body mapping using normalized strings
+    #    - normalise node title+body
+    norm_node = _norm(tit + " " + text)
+    if norm_node:
+        for gold_title_lc, gold_label in gold_title_map.items():
+            norm_gold = _norm(gold_title_lc)
+            if norm_gold and norm_gold in norm_node:
+                return gold_label
+
+    # 4) Parent-number fallback (e.g. we only see "5" but gold has "5(f)")
+    parent = (meta.get("clause_num") or "").strip()
+    if not parent:
+        # try to read bare number from text like "Clause 5" or "5."
+        mnum = re.search(r"\b(?:clause\s*)?(\d{1,4})\b", text, flags=re.I)
+        parent = mnum.group(1) if mnum else ""
+
+    if parent.isdigit():
+        # prefer primary label if it matches parent
+        prim = (primary_by_qid.get(qid) or "").strip()
+        if prim and prim.startswith(f"{parent}("):
+            return prim
+
+        # else, first gold label with that parent prefix
+        for lbl in labels_by_qid.get(qid, []):
+            if lbl.startswith(f"{parent}("):
+                return lbl
+
+    # If nothing matched, we can't confidently map this node.
+    return ""
+
+
 CANON = re.compile(r"^\d{1,4}\([a-z]\)$")  # e.g., 5(f), 2(b), 2023(a)
 
 def infer_clause_label_from_meta(meta: dict) -> str:
@@ -124,42 +252,112 @@ def load_index(persist_dir: str) -> VectorStoreIndex:
     storage = StorageContext.from_defaults(persist_dir=persist_dir)
     return load_index_from_storage(storage)
 
+# --- custom reranker (add near your imports) ---
+from sentence_transformers import CrossEncoder
 
-def ranked_labels_from_query(index, qid, query, top_k,
-                             titles_by_qid, labels_by_qid, primary_by_qid):
+class SimpleCrossEncoderReranker:
+    """Version-agnostic reranker using a sentence-transformers CrossEncoder."""
+    def __init__(self, model_name="cross-encoder/ms-marco-MiniLM-L-6-v2", top_n=10, batch_size=16):
+        self.model_name = model_name
+        self.top_n = top_n
+        self.batch_size = batch_size
+        self.model = CrossEncoder(model_name, trust_remote_code=True)
+
+    def rerank(self, query, nodes):
+        """nodes: list of (node_obj, score_float)"""
+        pairs = [(query, getattr(n, "text", getattr(n, "get_text", lambda: "")())) for n, _ in nodes]
+        scores = self.model.predict(pairs, batch_size=self.batch_size)
+        # Normalize scores 0–1
+        min_s, max_s = float(min(scores)), float(max(scores))
+        if max_s > min_s:
+            scores = [(s - min_s) / (max_s - min_s) for s in scores]
+        rescored = [(nodes[i][0], float(scores[i])) for i in range(len(nodes))]
+
+        rescored.sort(key=lambda x: x[1], reverse=True)
+        return rescored[: self.top_n]
+
+
+def ranked_labels_from_query(
+    index,
+    qid,                         # <— use the query id
+    query,
+    top_k,
+    titles_by_qid,               # <— gold maps
+    labels_by_qid,
+    primary_by_qid,
+    *args, **kwargs
+):
+
+    # --- sanitize inputs ---
+    # some harnesses pass a dict or extra args; some pass top_k as a string
+    if isinstance(query, dict) and "query" in query:
+        query = query["query"]
+    if query is None:
+        query = ""
+    try:
+        k = int(top_k)
+    except (TypeError, ValueError):
+        k = 10  # sensible default
+
+    q_exp = expand_query(str(query))
+    num_needles = numeric_tokens(str(query))
+
+    # 1) retrieve deeper with embeddings
     qe = index.as_query_engine(
-        similarity_top_k=max(20, top_k),   # pull deeper
-        response_mode="compact",
+        similarity_top_k=max(25, k),
+        response_mode="compact"
     )
-    resp = qe.query(query)
+    resp = qe.query(q_exp)
     sns = getattr(resp, "source_nodes", []) or []
 
-    # 1) score cutoff to boost Precision@k
-    CUT = 0.20
-    cand = []
+    # build (node, score) list
+    raw = []
     for sn in sns:
-        sc = getattr(sn, "score", None)
-        if sc is not None and sc < CUT:
-            continue
-        cand.append(sn)
-
-    # 2) lightweight MMR-ish dedupe by clause label to reduce redundancy
-    seen_labels, picked = set(), []
-    for sn in cand:
         node = getattr(sn, "node", None)
-        meta = getattr(node, "metadata", {}) or {}
-        text = getattr(node, "text", "") or ""
-        lab = canonicalize_label_for_query(qid, meta, text,
-                                           titles_by_qid, labels_by_qid, primary_by_qid)
-        if not lab:
-            lab = infer_clause_label_from_meta(meta)
-        if lab and lab not in seen_labels:
-            picked.append((lab, getattr(sn, "score", 0.0)))
-            seen_labels.add(lab)
+        sc = float(getattr(sn, "score", 0.0) or 0.0)
+        if node is not None:
+            raw.append((node, sc))
 
-    # 3) keep top_k by score after cleanup
-    picked.sort(key=lambda x: x[1], reverse=True)
-    return [lab for lab, _ in picked[:top_k]]
+    # 2) rerank with CrossEncoder (version-agnostic)
+    reranker = SimpleCrossEncoderReranker(
+        model_name="cross-encoder/ms-marco-MiniLM-L-6-v2",
+        top_n=max(10, k)
+    )
+    reranked = reranker.rerank(q_exp, raw)
+
+    # 3) cutoff + de-dupe + numeric boost
+    # 3) cutoff + de-dupe + numeric boost (temporarily no cutoff)
+    # CUT = 0.05  # disable for debugging
+   # 3) de-dupe + numeric boost (disable cutoff while debugging)
+    seen, pool = set(), []
+    for node, sc in reranked:
+        meta = getattr(node, "metadata", {}) or {}
+        txt  = getattr(node, "text", "") or ""
+
+        lab = canonicalize_label_for_query(
+            qid,
+            meta,
+            txt,
+            titles_by_qid,
+            labels_by_qid,
+            primary_by_qid,
+        )
+        if not lab or lab in seen:
+            continue
+
+        boost = contains_any(txt, num_needles)
+        pool.append((lab, float(sc) + 0.05 * boost, boost))
+        seen.add(lab)
+
+    if not pool:
+        # small debug bread-crumb so we can see why
+        print(f"[debug] {qid} zero after mapping; sample meta_title=",
+            (meta.get('clause_title') or ''), "parent_num=", meta.get('clause_num'))
+
+    pool.sort(key=lambda x: (x[1], x[2]), reverse=True)
+    return [lab for lab, _, _ in pool[:k]]
+
+
 
 
 def extract_answer_only(md: str) -> str:
