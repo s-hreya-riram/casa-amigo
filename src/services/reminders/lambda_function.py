@@ -44,7 +44,6 @@ ses_client = boto3.client('ses', region_name='ap-southeast-1')
 _supabase_client = None
 
 def get_supabase_client() -> Client:
-    """Get or create Supabase client singleton"""
     global _supabase_client
     
     if _supabase_client is None:
@@ -61,6 +60,30 @@ def get_supabase_client() -> Client:
 
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL')
 
+def parse_description(description: str) -> dict:
+    """
+    Parse description - either JSON format from tool or plain text fallback
+    
+    Returns dict with: subject, body, task, type
+    """
+    try:
+        # Try parsing as JSON first (new format from tool)
+        data = json.loads(description)
+        return {
+            'subject': data.get('subject', 'Reminder from Casa Amigo'),
+            'body': data.get('body', description),
+            'task': data.get('task', ''),
+            'type': data.get('type', '')
+        }
+    except (json.JSONDecodeError, TypeError):
+        # Fallback for plain text descriptions (legacy format)
+        return {
+            'subject': f'Reminder: {description}',
+            'body': f'This is a friendly reminder about: {description}',
+            'task': description,
+            'type': ''
+        }
+
 def lambda_handler(event, context):
     """Check for due reminders and send email notifications"""
     try:
@@ -69,8 +92,7 @@ def lambda_handler(event, context):
         supabase = get_supabase_client()
         now = datetime.now(timezone.utc).isoformat()
         
-        # Change this code to fetch user email from the users table based on user_id
-        # Query reminders that are due
+        # Query reminders that are due with user email
         response = supabase.table('reminders').select(
             '''
             reminder_id,
@@ -81,7 +103,7 @@ def lambda_handler(event, context):
                 email_id
             )
             '''
-        ).lte('reminder_date', now).eq('status', 'pending').execute()
+        ).lte('reminder_date', now).eq('status', 'active').execute()
         
         reminders = response.data
         
@@ -102,19 +124,28 @@ def lambda_handler(event, context):
                 reminder_id = reminder['reminder_id']
                 user_id = reminder['user_id']
                 description = reminder['description']
+                reminder_date = reminder['reminder_date']
 
                 # Get user email from joined users relationship
                 user_info = reminder.get('users')
                 user_email = user_info.get('email_id') if user_info else None
 
-                # fallback lookup
+                # Fallback lookup if join didn't work
                 if not user_email and reminder.get('user_id'):
                     result = supabase.table('users').select('email_id').eq('user_id', reminder['user_id']).single().execute()
                     if result.data:
                         user_email = result.data['email_id']
                 
-                # Send email notification to specific user
-                send_email_notification(user_email, description, reminder['reminder_date'])
+                # Parse description (handles both JSON and plain text)
+                email_content = parse_description(description)
+                
+                # Send email with structured content
+                send_email_notification(
+                    user_email, 
+                    email_content['subject'],
+                    email_content['body'],
+                    reminder_date
+                )
                 
                 # Create notification record
                 notification_data = {
@@ -125,7 +156,8 @@ def lambda_handler(event, context):
                     'sent_at': datetime.now(timezone.utc).isoformat(),
                     'metadata': {
                         'email': user_email,
-                        'method': 'ses'
+                        'method': 'ses',
+                        'subject': email_content['subject']
                     }
                 }
                 
@@ -188,44 +220,173 @@ def mark_reminder_failed(supabase, reminder_id, user_id, error_msg):
     except Exception as e:
         print(f"Failed to mark reminder as failed: {str(e)}")
 
-def send_email_notification(user_email, description, reminder_date):
-    """Send email notification via Amazon SES to specific user"""
+def send_email_notification(user_email: str, subject: str, body: str, reminder_date: str):
+    """Send email notification via Amazon SES with custom subject and body"""
     
-    try:
-        dt = datetime.fromisoformat(reminder_date.replace('Z', '+00:00'))
-        formatted_date = dt.strftime('%B %d, %Y at %I:%M %p UTC')
-    except:
-        formatted_date = reminder_date
+    # Use custom subject from description or default
+    email_subject = subject if subject else "🔔 Reminder from Casa Amigo"
     
-    subject = "🔔 Reminder from Your Chatbot"
-    
+    # Build email body with custom content (without date)
     body_text = f"""
 Hello,
 
-This is your reminder:
+{body}
 
-{description}
-
-Scheduled for: {formatted_date}
+Best regards,
+Casa Amigo Team
 
 ---
-This reminder was sent by your AI Chatbot Assistant.
+Casa Amigo - Your Rental Assistant
+This is an automated reminder from your Casa Amigo chatbot.
     """.strip()
     
     body_html = f"""
 <html>
-<head></head>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {{
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        margin: 0;
+        padding: 0;
+        background-color: #f5f5f5;
+    }}
+    .container {{
+        max-width: 900px;
+        margin: 20px auto;
+        background: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }}
+    .header {{
+        background: linear-gradient(135deg, #2C4B8E 0%, #D84339 100%);
+        color: white;
+        padding: 40px 48px;
+        text-align: center;
+    }}
+    .header h1 {{
+        margin: 0 0 8px 0;
+        font-size: 32px;
+        font-weight: 700;
+    }}
+    .header p {{
+        margin: 0;
+        font-size: 16px;
+        opacity: 0.95;
+    }}
+    .content {{
+        padding: 48px;
+    }}
+    .greeting {{
+        font-size: 18px;
+        color: #333;
+        margin-bottom: 24px;
+    }}
+    .reminder-body {{
+        font-size: 18px;
+        line-height: 1.7;
+        margin: 24px 0;
+        padding: 28px;
+        background: #f9fafb;
+        border-left: 4px solid #D84339;
+        border-radius: 6px;
+        color: #1a1a1a;
+    }}
+    .signature {{
+        margin-top: 36px;
+        padding-top: 24px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 16px;
+        color: #555;
+    }}
+    .signature-name {{
+        font-weight: 600;
+        color: #2C4B8E;
+        margin-bottom: 4px;
+    }}
+    .footer {{
+        background: #f9fafb;
+        text-align: center;
+        padding: 24px 48px;
+        border-top: 1px solid #e5e7eb;
+    }}
+    .footer-title {{
+        font-size: 15px;
+        font-weight: 600;
+        color: #2C4B8E;
+        margin-bottom: 6px;
+    }}
+    .footer-text {{
+        font-size: 13px;
+        color: #666;
+        line-height: 1.5;
+    }}
+    
+    /* Mobile responsiveness */
+    @media only screen and (max-width: 640px) {{
+        .container {{
+            margin: 10px;
+            border-radius: 6px;
+        }}
+        .header {{
+            padding: 32px 24px;
+        }}
+        .header h1 {{
+            font-size: 24px;
+        }}
+        .header p {{
+            font-size: 14px;
+        }}
+        .content {{
+            padding: 28px 20px;
+        }}
+        .greeting {{
+            font-size: 16px;
+        }}
+        .reminder-body {{
+            font-size: 16px;
+            padding: 20px;
+        }}
+        .signature {{
+            font-size: 15px;
+        }}
+        .footer {{
+            padding: 20px 20px;
+        }}
+    }}
+</style>
+</head>
 <body>
-  <h2>🔔 Reminder</h2>
-  <p>{description}</p>
-  <p><strong>Scheduled for:</strong> {formatted_date}</p>
-  <hr>
-  <p><small>This reminder was sent by your AI Chatbot Assistant.</small></p>
+<div class="container">
+    <div class="header">
+        <h1>🏠 Casa Amigo</h1>
+        <p>Your Rental Assistant</p>
+    </div>
+    <div class="content">
+        <div class="greeting">Hello there! 👋</div>
+        <div class="reminder-body">
+            {body}
+        </div>
+        <div class="signature">
+            <div class="signature-name">Best regards,</div>
+            <div>The Casa Amigo Team</div>
+        </div>
+    </div>
+    <div class="footer">
+        <div class="footer-title">Casa Amigo</div>
+        <div class="footer-text">
+            Simplifying rentals, one chat at a time.<br>
+            This is an automated reminder from your Casa Amigo chatbot.
+        </div>
+    </div>
+</div>
 </body>
 </html>
     """.strip()
     
-    # Send email via SES directly to user
     response = ses_client.send_email(
         Source=SENDER_EMAIL,
         Destination={
@@ -233,7 +394,7 @@ This reminder was sent by your AI Chatbot Assistant.
         },
         Message={
             'Subject': {
-                'Data': subject,
+                'Data': email_subject,
                 'Charset': 'UTF-8'
             },
             'Body': {

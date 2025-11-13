@@ -56,7 +56,6 @@ class CasaAmigoAgent:
         # Prints a concise tree after each agent run (to stdout).
         self._debug_handler = LlamaDebugHandler(print_trace_on_end=True)
         self._cb_manager = CallbackManager([self._debug_handler])
-
         # Ensure retrievers/query engines created elsewhere inherit callbacks.
         Settings.callback_manager = self._cb_manager
 
@@ -67,9 +66,17 @@ class CasaAmigoAgent:
             temperature=self.config.temperature,
             callback_manager=self._cb_manager,  
         )
+        
+        # ---- Create OpenAI client for tools ----
+        from openai import OpenAI as OpenAIClient
+        self.openai_client = OpenAIClient(api_key=api_key)
 
         # ---- Tools -----------------------------------------------------------
-        self._tools = build_tools(index, similarity_top_k=self.config.similarity_top_k)
+        self._tools = build_tools(
+            index, 
+            similarity_top_k=self.config.similarity_top_k,
+            llm_client=self.openai_client  # Share the client
+        )
 
         # ---- AgentWorkflow ---------------------------------------------------
         self.workflow = AgentWorkflow.from_tools_or_functions(
@@ -87,7 +94,6 @@ class CasaAmigoAgent:
 
         # ---- Debug buffers (for UI display) ---------------------------------
         self._last_tool_calls: list[dict] = []
-
 
 
     # ------------------------------ Public API -------------------------------

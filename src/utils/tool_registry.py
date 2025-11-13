@@ -26,24 +26,30 @@ def personalised_recommendation(): ...
 
 # ---- Tool registry ---------------------------------------------------------
 
-def build_tools(index: VectorStoreIndex, similarity_top_k: int = 5):
-
+def build_tools(index: VectorStoreIndex, similarity_top_k: int = 5, llm_client=None):
+    """
+    Build tools with shared LLM client for efficiency.
+    
+    Args:
+        index: Vector store index for RAG
+        similarity_top_k: Number of similar documents to retrieve
+        llm_client: OpenAI client instance to share across tools
+    """
+    
     lease_qna_fn = build_lease_qna_tool(index, debug_log)
 
     # ----- tool 1: tenancy qna -------
-
     lease_qna = FunctionTool.from_defaults(
         fn=lease_qna_fn,
         name="lease_qna",
         description=("Use for any lease/contract question. Return an answer followed by "
-                     "‘Relevant excerpts’ with exact clause labels and short verbatim quotes. "
+                     "'Relevant excerpts' with exact clause labels and short verbatim quotes. "
                      "If dates/fees must be computed, call date_calculator after this."),
         fn_schema=LeaseQnAInput,
         return_direct=True, 
     )
 
     # ------- tool 2: neighbourhood amenity proximity questions ---------
-
     neighborhood_tool = FunctionTool.from_defaults(
         fn=neighborhood_researcher,
         name="neighborhood_researcher",
@@ -56,23 +62,28 @@ def build_tools(index: VectorStoreIndex, similarity_top_k: int = 5):
     now = datetime.now()
     iso = now.isoformat(timespec="seconds")
     year = now.year
+    
     def reminder_tool_wrapper(input: ReminderInput | dict | None = None, **kwargs):
-        """Wrapper that injects auth from global store."""
+        """Wrapper that injects auth AND LLM client."""
         from utils.auth_store import get_auth_store
         
-        # ✅ Get auth from global store (works in any thread)
+        # Get auth from global store
         auth = get_auth_store().get()
-        print(f"[TOOL_WRAPPER] Auth from store: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}, thread={threading.current_thread().name}")
+        print(f"[TOOL_WRAPPER] Auth from store: user_id={auth.get('user_id')}, has_token={bool(auth.get('token'))}")
         
-        # Inject into kwargs
+        # Inject both auth and LLM client into kwargs
         kwargs['_injected_auth'] = auth
+        # Don't pass llm_client if it's None to avoid issues
+        if llm_client is not None:
+            kwargs['llm_client'] = llm_client
         
+        # Call with just input and kwargs
         return notification_workflow_tool(input, **kwargs)
 
     reminder_tool = FunctionTool.from_defaults(
         fn=reminder_tool_wrapper,
         name="notification_workflow_tool",
-            description=(
+        description=(
             "Create and manage reminders related to tenancy milestones. "
             f"Current datetime (authoritative): {iso}. "
             f"Always resolve relative dates using this datetime. "
