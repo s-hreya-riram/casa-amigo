@@ -209,23 +209,6 @@ class StreamlitApp:
                 box-shadow: 0 0 6px {self.RED}60 !important;
             }}
 
-            /* Buttons (pill) */
-            .stButton>button {{
-                border: 2px solid {self.RED} !important; 
-                color: {self.RED} !important;
-                background: transparent !important; 
-                border-radius: 999px !important;
-                padding: 0.55rem 1rem !important; 
-                font-weight: 600 !important;
-                transition: all 0.2s ease-in-out !important;
-                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif !important;
-                font-size: 0.9rem !important;
-            }}
-            .stButton>button:hover {{ 
-                background: {self.RED} !important; 
-                color: #FFF !important; 
-            }}
-
             /* Selectbox styling */
             [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] {{
                 border-radius: 12px !important;
@@ -235,6 +218,126 @@ class StreamlitApp:
             [data-testid="stSidebar"] .stSelectbox {{
                 margin-top: 0.4rem !important;
                 margin-bottom: 0.6rem !important;
+            }}
+
+            /* Global button reset */
+            .stButton > button {{
+                border-radius: 999px !important;
+                font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif !important;
+                font-weight: 600 !important;
+                font-size: 0.9rem !important;
+                padding: 0.6rem 1.2rem !important;
+                border: none !important;
+                cursor: pointer !important;
+                transition: all 0.15s ease-in-out !important;
+            }}
+
+            /* Sidebar buttons */
+            [data-testid="stSidebar"] .stButton > button {{
+                background: linear-gradient(90deg, #D84339, #B7352D) !important;
+                color: #FFFFFF !important;
+                width: 100% !important;
+                display: block !important;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.18) !important;
+                margin-top: 0.3rem !important;
+            }}
+
+            [data-testid="stSidebar"] .stButton > button:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.25) !important;
+                opacity: 0.96;
+            }}
+
+            /* Clear Chat button */
+            #clear-chat-container .stButton > button {{
+                background: linear-gradient(90deg, #D84339, #B7352D) !important;
+                color: #FFFFFF !important;
+                border: none !important;
+                border-radius: 999px !important;
+                padding: 0.65rem 1.2rem !important;
+                font-weight: 700 !important;
+                font-size: 0.9rem !important;
+                width: 100% !important;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.18) !important;
+                transition: all 0.15s ease-in-out !important;
+            }}
+
+            #clear-chat-container .stButton > button:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.25) !important;
+                opacity: 0.96;
+            }}
+
+
+            /* Submit button */
+            [data-testid="stSidebar"] .stFormSubmitButton > button {{
+                background: linear-gradient(90deg, #D84339, #B7352D) !important;
+                color: #FFFFFF !important;
+                border: none !important;
+                border-radius: 999px !important;
+                padding: 0.65rem 1.2rem !important;
+                font-weight: 700 !important;
+                font-size: 0.9rem !important;
+                width: 100% !important;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.18) !important;
+                transition: all 0.15s ease-in-out !important;
+                margin-top: 0.3rem !important;
+            }}
+
+            [data-testid="stSidebar"] .stFormSubmitButton > button:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.25) !important;
+                opacity: 0.96;
+            }}
+
+            /* Submit button -> to match the styling */
+            #bugform-wrapper .stButton > button {{
+                background: linear-gradient(90deg, #D84339, #B7352D) !important;
+                color: #FFFFFF !important;
+                border: none !important;
+                border-radius: 999px !important;
+                padding: 0.65rem 1.2rem !important;
+                font-weight: 700 !important;
+                font-size: 0.9rem !important;
+                width: 100% !important;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.18) !important;
+                transition: all 0.15s ease-in-out !important;
+            }}
+
+            #bugform-wrapper .stButton > button:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.25) !important;
+                opacity: 0.96;
+            }}
+
+            /* Gateway Login Buttons */
+            .gateway-login-btn > button {{
+                background: linear-gradient(90deg, #2C4B8E, #D84339) !important;
+                color: #FFFFFF !important;
+                font-size: 1.05rem !important;
+                font-weight: 700 !important;
+                padding: 0.85rem 1.4rem !important;
+                border-radius: 12px !important;
+                border: none !important;
+                width: 100% !important;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.12) !important;
+                transition: all 0.2s ease-out !important;
+            }}
+
+            .gateway-login-btn > button:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.2) !important;
+                opacity: 0.95;
+            }}
+
+            /* Force solid red buttons in sidebar, including Clear Chat */
+            [data-testid="stSidebar"] button[kind="secondary"],
+            [data-testid="stSidebar"] button[kind="primary"] {{
+                background: linear-gradient(90deg, #D84339, #B7352D) !important;
+                color: #FFFFFF !important;
+                border: none !important;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.18) !important;
+                opacity: 1 !important;
             }}
 
             /* === MAIN CONTENT STYLING === */
@@ -580,76 +683,75 @@ class StreamlitApp:
 
             # Voice Input Section - Simple and Clean
             st.markdown("<div class='voice-section'>", unsafe_allow_html=True)
-            
-            # Create a clean layout with text and button side by side
             col1, col2 = st.columns([3.25, 1])
-            
             with col1:
                 st.markdown(
                     "<p class='voice-hint'>Prefer to speak? Record your message instead of typing.</p>",
                     unsafe_allow_html=True
                 )
-            
             with col2:
-                # Audio recorder with cleaner radio waves emoji (common in voice apps)
                 audio_bytes = audiorecorder("🔴", "⏹️", key="sidebar_voice")
-            
             st.markdown("</div>", unsafe_allow_html=True)
-            
+
             # Process voice input only if it's new audio
             if audio_bytes and len(audio_bytes) > 0:
-                # Convert AudioSegment to bytes for hashing
                 try:
-                    # Export audio to bytes
                     from io import BytesIO
                     audio_buffer = BytesIO()
                     audio_bytes.export(audio_buffer, format="wav")
                     audio_data = audio_buffer.getvalue()
-                    
-                    # Check if this is new audio (different from last processed)
+
                     current_audio_hash = hash(audio_data)
                     last_audio_hash = st.session_state.get("last_audio_hash", None)
-                    
+
                     if current_audio_hash != last_audio_hash:
                         st.session_state["last_audio_hash"] = current_audio_hash
-                        
                         with st.spinner("Transcribing..."):
                             transcribed_text = self.voice_manager.transcribe_audio(audio_bytes)
-                        
+
                         if transcribed_text:
-                            # Store in session state to be processed in main area
                             st.session_state["pending_voice_query"] = transcribed_text
                             st.rerun()
                         else:
                             st.error("Could not transcribe. Please try again.")
                 except Exception as e:
                     st.error(f"Error processing audio: {e}")
-            
+
             st.divider()
 
             # 4) Feedback/Bug Report
-            st.markdown("<h3 style='text-align:left;'>🐞 Feedback / Bug Report</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align:left;'>🐞 Feedback/Bug Report</h3>", unsafe_allow_html=True)
+
+            st.markdown("<div id='bugform-wrapper'>", unsafe_allow_html=True)
             with st.form("bugform", clear_on_submit=True):
                 bug = st.text_area("Tell us what went wrong or how we can improve.", height=100)
                 submitted = st.form_submit_button("Submit")
                 if submitted and bug.strip():
                     st.session_state["bug_reports"].append(bug.strip())
                     st.success("Thanks for sharing! We truly appreciate your feedback.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
-            st.markdown("<div class='ca-sep'></div>", unsafe_allow_html=True)
+            # 5) Chat Controls --> ONLY for tenants
+            if role == "tenant":
+                st.markdown("<div class='ca-sep'></div>", unsafe_allow_html=True)
+                st.markdown("<h3 style='text-align:left;'>💬 Chat Controls</h3>", unsafe_allow_html=True)
+                st.markdown(
+                    "<p style='font-size:0.85rem; opacity:0.9; margin-bottom:0.35rem;'>Reset the conversation and start fresh.</p>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown("<div id='clear-chat-container'>", unsafe_allow_html=True)
+                if st.button("🗑️ Clear Chat History", key="clear_chat_btn"):
+                    st.session_state["messages"] = [
+                        {"role": "assistant", "content": "Hello!👋 Ask me anything about your rental agreements."}
+                    ]
+                    st.toast("Chat history cleared.")
+                st.markdown("</div>", unsafe_allow_html=True)
 
-            # 5) Clear Chat History
-            if st.button("🗑️ Clear Chat", use_container_width=True, key="clear_chat_btn"):
-                st.session_state["messages"] = [
-                    {"role": "assistant", "content": "Hello!👋 Ask me anything about your rental agreements."}
-                ]
-                st.toast("Chat history cleared.")
-
-            # Footer
+            # 6) Footer
             st.markdown("<div class='ca-sep'></div>", unsafe_allow_html=True)
             st.markdown("<div class='ca-footer'>⚡ Powered by Casa Amigo © 2025</div>", unsafe_allow_html=True)
 
-    # === CHAT HANDLERS =====
+    # ===== CHAT HANDLERS =====
     def _display_chat_history(self):
         for msg in st.session_state["messages"]:
             role = msg["role"]
@@ -854,11 +956,15 @@ class StreamlitApp:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        if st.button(
+        if st.button(        
             f"🔐 Login as {role.title()}",
             key=f"gw_{role}_login_btn",
-            use_container_width=True
+            help="Enter your email and password to continue.",
+            type="primary",
+            use_container_width=True,
+            kwargs={"className": "gateway-login-btn"}
         ):
+
             if self._api_login(email, pwd):
                 st.session_state[f"auth_{role}"] = st.session_state["auth"]
                 st.session_state["active_role"] = role
@@ -875,32 +981,29 @@ class StreamlitApp:
         screen = st.session_state.get("screen", "gateway")
         role = st.session_state.get("active_role")
 
+        # 1) Gateway (pre-login)
         if screen == "gateway":
             self._render_gateway()
             return
 
+        # 2) No role? Send back to gateway
         if not role:
             st.warning("⚠️ Please log in first.")
             st.session_state["screen"] = "gateway"
             st.rerun()
 
-        # Sidebar
+        # 3) Sidebar
         self._render_sidebar()
-        
-        # Main content area - ONLY call these once at the top level
-        self._display_chat_history()
-        self._handle_user_input()
-
         nav = st.session_state.get("sidebar_nav")
 
-        # Logout
+        # 4) Logout handler
         if nav == "Logout":
             st.session_state["screen"] = "gateway"
             st.session_state["active_role"] = None
             st.session_state["auth"] = {"logged_in": False, "email": None}
             st.rerun()
 
-        # ==== AGENT FLOW =====
+        # 5) Agent flow
         if role == "agent":
             if nav == "Dashboard":
                 st.markdown("### Listings Dashboard")
@@ -911,7 +1014,6 @@ class StreamlitApp:
                 if not props:
                     st.warning("No properties available from backend yet.")
                 else:
-                    # Normalize and show a clean metadata table
                     raw_df = pd.json_normalize(props)
 
                     preferred_cols = [
@@ -929,7 +1031,6 @@ class StreamlitApp:
 
                     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
-                    # Optional CSV Export
                     csv = display_df.to_csv(index=False).encode("utf-8")
                     st.download_button(
                         "Download listings CSV",
@@ -944,17 +1045,18 @@ class StreamlitApp:
                 active_role = st.session_state.get("active_role", "agent")
                 st.markdown("## Account")
                 c1, c2, c3 = st.columns(3)
-                with c1: st.metric("Role", active_role.title())
-                with c2: st.metric("Email", auth.get("email") or "—")
-                with c3: st.metric("User ID", auth.get("user_id") or "—")
+                with c1:
+                    st.metric("Role", active_role.title())
+                with c2:
+                    st.metric("Email", auth.get("email") or "—")
+                with c3:
+                    st.metric("User ID", auth.get("user_id") or "—")
 
-        # ==== TENANT FLOW =====
+        # 6) Tenant flow
         elif role == "tenant":
             if nav == "Conversations":
-                # DON'T call these again - they're already called above
-                # self._display_chat_history()  # REMOVE THIS LINE
-                # self._handle_user_input()     # REMOVE THIS LINE
-                pass  # Chat is already displayed above
+                self._display_chat_history()
+                self._handle_user_input()
 
             elif nav == "Profile":
                 auth = st.session_state.get("auth", {}) or {}
