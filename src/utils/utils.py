@@ -74,7 +74,7 @@ def extract_text(agent_output) -> str:
 
 ## ------------------ Geomapping helpers --------------------------------
 
-OSM_USER_AGENT = "CasaAmigo/1.0 (student demo; contact: example@example.com)"  # <-- change
+OSM_USER_AGENT = "CasaAmigo/1.0 (+github.com/s-hreya-riram/casa-amigo; shreyasriram29@gmail.com)"
 
 def haversine_m(lat1, lon1, lat2, lon2) -> float:
     R = 6371000.0
@@ -103,46 +103,68 @@ def geocode(address: str) -> Optional[tuple[float, float, str]]:
 
 import json
 
-def overpass(query: str) -> dict:
-    """
-    Call Overpass. Always return a dict.
-    Never raise.
-    On any failure, return {'elements': []} instead of exploding.
-    """
+import time
 
+def overpass(query: str, max_retries: int = 3) -> dict:
+    """
+    Call Overpass with retry logic.
+    Always return a dict, never raise.
+    """
     url = "https://overpass-api.de/api/interpreter"
 
-    try:
-        resp = requests.post(
-            url,
-            data={"data": query},
-            timeout=10,
-            headers={"Accept": "application/json"},
-        )
-    except Exception as e:
-        print("OVERPASS NETWORK ERROR:", e)
-        return {"elements": []}  # <- NO RAISE
+    for attempt in range(max_retries):
+        try:
+            resp = requests.post(
+                url,
+                data={"data": query},
+                timeout=30,
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": OSM_USER_AGENT,  # Add this!
+                },
+            )
+            
+            # If HTTP not 200, retry
+            if resp.status_code != 200:
+                print(f"OVERPASS BAD STATUS (attempt {attempt+1}): {resp.status_code}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
+                    continue
+                return {"elements": []}
 
-    # If HTTP not 200, don't raise, just return empty.
-    if resp.status_code != 200:
-        print("OVERPASS BAD STATUS:", resp.status_code, resp.text[:200])
-        return {"elements": []}
+            # Try to parse JSON
+            try:
+                data = resp.json()
+            except json.JSONDecodeError as e:
+                print(f"OVERPASS BAD JSON (attempt {attempt+1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+                return {"elements": []}
 
-    # Try to parse JSON. If broken, return empty.
-    try:
-        data = resp.json()
-    except json.JSONDecodeError as e:
-        print("OVERPASS BAD JSON:", e, resp.text[:200])
-        return {"elements": []}
+            # Guarantee shape
+            if not isinstance(data, dict):
+                return {"elements": []}
+            if "elements" not in data or not isinstance(data["elements"], list):
+                data["elements"] = []
 
-    # Guarantee shape
-    if not isinstance(data, dict):
-        return {"elements": []}
-    if "elements" not in data or not isinstance(data["elements"], list):
-        data["elements"] = []
+            return data
 
-    return data
+        except requests.exceptions.Timeout as e:
+            print(f"OVERPASS TIMEOUT (attempt {attempt+1}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            return {"elements": []}
+        
+        except Exception as e:
+            print(f"OVERPASS NETWORK ERROR (attempt {attempt+1}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(1)
+                continue
+            return {"elements": []}
 
+    return {"elements": []}
 # Map high-level categories → OSM tags
 POI_TAGS = {
     "mrt":       [{'key': 'railway', 'val': 'station'}, {'key':'public_transport','val':'station'}],

@@ -1,7 +1,7 @@
 from llama_index.core import VectorStoreIndex
 from llama_index.core.tools import FunctionTool
 from utils.reminder_tool import notification_workflow_tool, ReminderInput
-from utils.neighbourhood_research_tool import neighborhood_researcher
+from utils.neighbourhood_research_tool import neighborhood_researcher, NeighborhoodInput
 from utils.lease_tool import build_lease_qna_tool, LeaseQnAInput
 from datetime import datetime
 import threading
@@ -54,6 +54,7 @@ def build_tools(index: VectorStoreIndex, similarity_top_k: int = 5, llm_client=N
         fn=neighborhood_researcher,
         name="neighborhood_researcher",
         description="Return walking distances to nearby asked for amenities. Input: any string address and string amentiy type.",
+        fn_schema = NeighborhoodInput,
         return_direct=True,
     )
 

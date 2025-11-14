@@ -1,19 +1,58 @@
 from utils.utils import geocode, overpass, build_overpass_around, haversine_m, minutes_walk, osm_url, POI_TAGS 
 
+from pydantic import BaseModel, Field
+
+class NeighborhoodInput(BaseModel):
+    """Input schema for neighborhood researcher tool."""
+    address: str = Field(
+        description="Full address to search from (e.g., '2 Indus Road' or '123 Orchard Road, Singapore')"
+    )
+    poi: str = Field(
+        description="Type of amenity to search for (e.g., 'mrt', 'supermarket', 'hospital', 'school', 'park')"
+    )
+
 # ------ Neighborhood researcher tool ----------------------------------------
 def neighborhood_researcher(address: str, poi: str) -> str:
-
-
-    # ---- step 1: ------ ensure its only for singapore ( else wont work )
+    # Defensive checks
+    if not address or not isinstance(address, str):
+        return "❌ Error: No address provided."
+    
+    if not poi or not isinstance(poi, str):
+        return "❌ Error: No amenity type provided."
+    
+    print(f"[DEBUG] Received address='{address}', poi='{poi}'")
+    
+    # Step 1: Ensure Singapore
     if "singapore" not in address.lower():
         address = address + ", Singapore"
-    else:
-        address = address
-
-    # ---- step 2: ------ setup latitude/longitude/formatted address
-    g = geocode(address) # (51.4751259, 0.0346723, '2, Indus Road, Charlton, Royal Borough of Greenwich, London, Greater London, England, SE7 7DA, United Kingdom')
-    lat, lon, disp = g
-
+    
+    # Step 2: Geocode with detailed error handling
+    print(f"[DEBUG] Geocoding: {address}")
+    
+    try:
+        g = geocode(address)
+        print(f"[DEBUG] Geocode returned: type={type(g)}, value={g}")  # ← Add this
+    except Exception as e:
+        print(f"[DEBUG] Geocode exception: {type(e).__name__}: {e}")
+        return f"❌ Geocoding failed: {str(e)}"
+    
+    if g is None:
+        print(f"[DEBUG] Geocode returned None")
+        return f"❌ Could not find the address: {address}"
+    
+    # Add validation
+    if not isinstance(g, tuple) or len(g) != 3:
+        print(f"[DEBUG] Geocode returned invalid format: {g}")
+        return f"❌ Geocoding returned unexpected format: {type(g)}"
+    
+    try:
+        lat, lon, disp = g
+        print(f"[DEBUG] Unpacked: lat={lat}, lon={lon}, disp={disp}")
+    except Exception as e:
+        print(f"[DEBUG] Unpacking failed: {e}")
+        return f"❌ Could not parse geocoding result: {g}"
+    
+    # Step 3: POI synonyms
     synonyms = {
         "metro": "mrt", "subway": "mrt", "train": "mrt",
         "schools": "school", "uni": "university",
@@ -21,52 +60,61 @@ def neighborhood_researcher(address: str, poi: str) -> str:
         "markets": "supermarket",
     }
     poi = synonyms.get(poi, poi)
-
     radius = 1200
+    print(f"[DEBUG] Searching for {poi} within {radius}m")
 
-    #debug_log("tool_called", tool="neighborhood_researcher",args={"address": address, "poi": poi, "radius_m": radius})
-
-    # ---- step 3: ------ call overpass API to get the nearby amenities
+    # Step 4: Build Overpass query
     tags = POI_TAGS.get(poi) or [{'key': 'amenity', 'val': poi}]
     if isinstance(tags, list) and tags and isinstance(tags[0], dict):
-        tags_groups = [[t] for t in tags]   # e.g. [{'key':..}, {'key':..}] -> [[{..}], [{..}]]
+        tags_groups = [[t] for t in tags]
     else:
         tags_groups = [tags] if tags else []
-    try:
-        q = build_overpass_around(lat, lon, tags_groups, radius)
-        data = overpass(q)
-        #debug_log("overpass_query_summary", summary=q)
+    
+    print(f"[DEBUG] Building Overpass query for tags: {tags_groups}")
+    q = build_overpass_around(lat, lon, tags_groups, radius)
+    print(f"[DEBUG] Overpass query built, length: {len(q)}")
+    
+    # Step 5: Call Overpass
+    print(f"[DEBUG] Calling Overpass API...")
+    data = overpass(q)
+    print(f"[DEBUG] Overpass response received: {type(data)}")
+    
+    elements = data.get("elements", [])
+    print(f"[DEBUG] Overpass returned {len(elements)} elements")
 
-        data = overpass(q)
-        elements = data.get("elements", [])
-    except Exception as e:
-        #debug_log("tool_error", tool="neighborhood_researcher", error=str(e))
-        return f"Sorry—there was a network error while checking nearby amenities. Please try again. {q}"
-
-    # ----- step 4: ----- get the distances and format results
+    # Step 6: Calculate distances
     rows = []
     for e in elements:
         center = e.get("center") or {"lat": e.get("lat"), "lon": e.get("lon")}
-        if center["lat"] is None or center["lon"] is None:
+        if center.get("lat") is None or center.get("lon") is None:
             continue
         d = haversine_m(lat, lon, center["lat"], center["lon"])
         name = (e.get("tags", {}) or {}).get("name") or "(unnamed)"
-        rows.append({"name": name, "distance_m": int(d), "walk_min": minutes_walk(d), "url": osm_url(e)})
+        rows.append({
+            "name": name, 
+            "distance_m": int(d), 
+            "walk_min": minutes_walk(d), 
+            "url": osm_url(e)
+        })
+    
+    print(f"[DEBUG] Processed {len(rows)} valid results")
+    
     rows.sort(key=lambda r: r["distance_m"])
-
     clean_rows = [r for r in rows if r["name"] != "(unnamed)"]
-    clean_rows.sort(key=lambda r: r["distance_m"])
     top = clean_rows[:5]
+    
+    print(f"[DEBUG] Top {len(top)} results after filtering")
 
-    #debug_log("retrieval", tool="neighborhood_researcher",retrieved_k=len(rows),top=[{"rank": i, "score": None, "label": f"{r['name']} ({r['distance_m']} m)"} for i, r in enumerate(top)])
-
+    # Step 7: Format response
     if not top:
-        return (
-            "**Answer**\n"
+        result = (
+            f"**Answer**\n"
             f"No {poi} was found within {radius} m of {disp}.\n\n"
-            "**Data sources**\n"
-            "- OpenStreetMap / Overpass distance calc (walking time is straight-line distance / ~80 m per min)"
+            f"**Data sources**\n"
+            f"- OpenStreetMap / Overpass distance calc"
         )
+        print(f"[DEBUG] Returning empty result")
+        return result
 
     lines = []
     for r in top:
@@ -74,10 +122,12 @@ def neighborhood_researcher(address: str, poi: str) -> str:
             f"- {r['name']} — {r['distance_m']} m (~{r['walk_min']} min walk)\n  {r['url']}"
         )
 
-    return (
+    result = (
         f"Here are the closest {poi} options near {disp} (within {radius} m):\n\n"
         + "\n".join(lines)
         + "\n\n**Data sources**\n"
         "- OpenStreetMap / Overpass; distances are straight-line, walking time is estimated."
     )
-
+    
+    print(f"[DEBUG] Returning success result, length: {len(result)}")
+    return result
