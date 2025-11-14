@@ -14,15 +14,15 @@ Casa Amigo uses agentic workflows to provide specialized assistance to intellige
 
 Our RAG-powered property management chatbot leverages a modern, cloud-based architecture designed for scalability, real-time data retrieval, and intelligent document processing.
 
-### 4.1 Frontend
+### 1.1 Frontend
 **Streamlit** - Provides an interactive web interface for the chatbot with minimal development overhead
 
-### 4.2 Backend & APIs
+### 1.2 Backend & APIs
 **FastAPI** - High-performance Python web framework handling API requests, managing chat sessions, and orchestrating communication between components.
 
 **Supabase** - PostgreSQL database with pgvector extension for storing conversation history, user data, and vector embeddings for semantic search. Schema of the tables in the database are described in Appendix (Section 9.1)
 
-### 4.3 AI & RAG Pipeline
+### 1.3 AI & RAG Pipeline
 **LlamaIndex** - Manages document indexing, chunking, and retrieval orchestration for the RAG pipeline.
 
 **OpenAI API** - Provides LLM capabilities for natural language understanding and response generation.
@@ -33,7 +33,7 @@ Models used:
 
 **Agentic Workflow Router** - Employs intelligent query classification to route requests to specialized tool handlers: lease agreement Q&A for contract inquiries, automated reminder management, and location-based neighborhood search using OpenStreetMap integration.
 
-### 4.4 Cloud Infrastructure
+### 1.4 Cloud Infrastructure
 **Render** - Hosts the FastAPI backend with automatic deployments from Git
 
 **Streamlit Cloud** - Hosts the frontend with automatic deployments from Git
@@ -45,43 +45,43 @@ Models used:
 
 ## Features
 
-### 5.1 Core Chat Capabilities
+### 2.1 Core Chat Capabilities
 
-#### 5.1.1 Text Input Processing
+#### 2.1.1 Text Input Processing
 - Conversational interface for user inquiries
 - Context-aware responses using RAG
 
-#### 5.1.2 Voice Input Accessibility
+#### 2.1.2 Voice Input Accessibility
 - Speech-to-Text using Whisper API
 - Seamless conversion to text for processing
 
-### 5.2 Intelligent Query Routing (Agentic Workflow)
+### 2.2 Intelligent Query Routing (Agentic Workflow)
 
 The chatbot employs an agentic workflow that automatically classifies user intent and routes queries to specialized tools.
 
-#### 5.2.1 Lease Agreement Q&A
+#### 2.2.1 Lease Agreement Q&A
 - RAG-powered responses from Singapore rental documents
 - Provides accurate contract and policy information
 
-#### 5.2.2 Reminder Scheduling
+#### 2.2.2 Reminder Scheduling
 - Natural language reminder creation ("remind me about rent on 1st")
 - Scheduled email notifications via AWS infrastructure
 - List and view active reminders
 - Support for 6 reminder types: LOI, Deposit, Lease Signing, Rent Payment, Renewal, Move-out
 
-#### 5.2.3 Neighborhood Research
+#### 2.2.3 Neighborhood Research
 - Location-based POI search using OpenStreetMap
 - Finds nearby MRT stations, schools, clinics, markets
 - Calculates and displays walking distances from property
 
-### 5.3 Safety & Security
+### 2.3 Safety & Security
 
-#### 5.3.1 Authentication & Authorization
+#### 2.3.1 Authentication & Authorization
 - JWT-based secure access
 - User session management via Supabase
 - Role-based access (tenant/property agent)
 
-#### 5.3.2 Content Moderation
+#### 2.3.2 Content Moderation
 - Real-time safety checks using OpenAI Moderation API
 - Filters inappropriate or harmful content
 
