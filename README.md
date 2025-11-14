@@ -61,7 +61,6 @@ The chatbot employs an agentic workflow that automatically classifies user inten
 
 #### 5.2.1 Lease Agreement Q&A
 - RAG-powered responses from Singapore rental documents
-- Covers HDB policies, lease templates, legal regulations
 - Provides accurate contract and policy information
 
 #### 5.2.2 Reminder Scheduling
@@ -131,10 +130,30 @@ It is backed up by Render on the backend which is always up and running.
    OpenAI API key: platform.openai.com/api-keys
    Supabase credentials: Your project dashboard → Settings → API
 
-3. Run locally:
+3. Run the FastAPI backend:
+   ```
+   python -m uvicorn main:app --reload
+   ```
+   The backend will be available at http://localhost:8000
+   API Documentation: Visit http://localhost:8000/docs for interactive Swagger documentation
+
+4. Run Streamlit frontend locally:
    ```
    streamlit run src/app.py
    ```
+
+### Development Workflow
+Backend API: Use the FastAPI docs at http://localhost:8000/docs to test endpoints
+Frontend: Streamlit auto-reloads on file changes
+Database: Monitor Supabase dashboard for real-time data changes
+Testing: Both services need to be running for full functionality
+
+### Deployment
+Both services deploy automatically:
+
+Frontend: Streamlit Cloud deploys on Git push to main
+Backend: Render deploys FastAPI service on Git push to main
+
 
 ### Architecture
 Casa Amigo follows a cloud-native, microservices architecture:
