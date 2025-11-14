@@ -1,7 +1,7 @@
 from streamlit import user
 from .base import BaseService
 from .schema import UsersInsert, UsersUpdate
-from core.exceptions import NotFoundError, ValidationError
+from services.exceptions import NotFoundError, ValidationError
 from uuid import UUID
 from typing import Dict, Optional
 

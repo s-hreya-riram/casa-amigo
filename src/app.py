@@ -546,19 +546,29 @@ class StreamlitApp:
         except Exception:
             pass
         return os.getenv("API_BASE", "http://127.0.0.1:8000").rstrip("/")
-
+  
     def _api_login(self, email: str, password: str, user_type: str | None = None):
+        """
+        Login wrapper.
+
+        Frontend passes `user_type` based on selected role:
+
+        - "tenant"         -> users.user_type = 'tenant'         (map to tenant_profiles)
+        - "property_agent" -> users.user_type = 'property_agent' (map to property_agent)
+        """
         API_BASE = self._api_base()
         email = (email or "").strip()
         password = (password or "").strip()
+
         if not email or not password:
             st.error("Email and password are required.")
             return False
+
         try:
             # Build params for backend call
             params = {"email": email, "password": password}
             if user_type:
-                params["user_type"] = user_type  
+                params["user_type"] = user_type
 
             r = requests.post(
                 f"{API_BASE}/auth/login",
@@ -567,11 +577,19 @@ class StreamlitApp:
             )
             r.raise_for_status()
             data = r.json()
+
             token = data.get("access_token") or data.get("token")
             user_id = data.get("user_id")
-            
-            #  Determine user type from backend response if available
             backend_user_type = data.get("user_type") or user_type
+
+            # Verify role matches
+            if user_type and backend_user_type and backend_user_type != user_type:
+                st.error(
+                    f"Role mismatch: you tried to log in as '{user_type}', "
+                    f"but this account is registered as '{backend_user_type}'. "
+                    "Please choose the correct tab (Tenant/Agent) for this account."
+                )
+                return False
 
             if token:
                 auth_data = {
@@ -586,6 +604,7 @@ class StreamlitApp:
                 set_current_auth(auth_data)
                 st.toast("Logged in.")
                 return True
+
             st.error("Login response missing token.")
         except requests.HTTPError as e:
             try:
@@ -595,6 +614,7 @@ class StreamlitApp:
             st.error(f"Login failed: {detail}")
         except Exception as e:
             st.error(f"Login failed: {e}")
+
         return False
 
     def _api_logout(self):
@@ -619,6 +639,104 @@ class StreamlitApp:
     def _fetch_properties(self, limit: int = 50, offset: int = 0) -> list[dict]:
         data = self._get_json("/properties", params={"limit": limit, "offset": offset}, fallback={"properties": []})
         return data.get("properties", [])
+
+    def _fetch_tenant_profile(self, user_id: str | None = None) -> dict | None:
+        """
+        Fetch the tenant profile for the logged-in user.
+        Uses GET /tenantprofiles/{user_id}
+        """
+        if not user_id:
+            return None
+        data = self._get_json(f"/tenantprofiles/{user_id}", fallback=None)
+        return data
+
+    def _fetch_tenant_preferences(self, user_id: str | None = None) -> list[dict]:
+        """
+        Fetch tenant's property preferences using GET /preferences/{user_id}.
+        Backend can return:
+        - a list
+        - a single dict
+        - or {"preferences": [...]}
+        """
+        if not user_id:
+            return []
+
+        data = self._get_json(f"/preferences/{user_id}", fallback=None)
+        if not data:
+            return []
+
+        # If backend returns a plain list
+        if isinstance(data, list):
+            return data
+
+        # If backend wraps it, e.g. {"preferences": [...]}
+        if isinstance(data, dict) and "preferences" in data:
+            prefs = data["preferences"]
+            return prefs if isinstance(prefs, list) else [prefs]
+
+        # If backend returns a single row dict
+        if isinstance(data, dict):
+            return [data]
+
+        return []
+
+    def _fetch_tenancy_agreements(self, limit: int = 50, offset: int = 0) -> list[dict]:
+        """
+        Fetch tenancy agreements for agents from GET /tenancy-agreements.
+        """
+        data = self._get_json(
+            "/tenancy-agreements",
+            params={"limit": limit, "offset": offset},
+            fallback={"agreements": []},
+        )
+        if isinstance(data, dict):
+            return data.get("agreements", [])
+        return data or []
+    
+    def _clean_df_for_display(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Remove embedding or vector-like columns from any DataFrame before showing in UI.
+        """
+        if df is None or df.empty:
+            return df
+
+        df = df.copy()
+        known_vector_cols = [
+            "embedding",
+            "embeddings",
+            "content_vector",
+            "agreement_embeddings",
+            "agreement_embedding",
+            "tenant_embedding",
+            "document_embedding",
+            "chunk_embedding",
+            "vector",
+            "vectors",
+        ]
+
+        drop_cols = [c for c in known_vector_cols if c in df.columns]
+
+        # Extra safety: auto-detect list-of-floats columns (typical embedding pattern)
+        for col in df.columns:
+            if col in drop_cols:
+                continue
+            col_series = df[col].dropna()
+            if col_series.empty:
+                continue
+            first_val = col_series.iloc[0]
+            # Check if it's a long list/tuple of numbers -> likely an embedding
+            if isinstance(first_val, (list, tuple)) and len(first_val) > 10:
+                # Check first few elements are numeric
+                numeric_like = all(
+                    isinstance(x, (int, float)) for x in list(first_val)[:20]
+                )
+                if numeric_like:
+                    drop_cols.append(col)
+
+        if drop_cols:
+            df = df.drop(columns=drop_cols)
+
+        return df
 
     # ===== PROPERTY SCORING =====
     def _score_properties(self, props: list[dict], prefs: dict | None) -> pd.DataFrame:
@@ -715,7 +833,7 @@ class StreamlitApp:
 
             # 3) Navigation Header
             st.markdown("<h3>🧭 Navigation</h3>", unsafe_allow_html=True)
-            tenant_menu = ["Conversations", "Profile", "Logout"]
+            tenant_menu = ["Dashboard", "Conversations", "Profile", "Logout"]
             agent_menu  = ["Dashboard", "Profile", "Logout"]
             menu = tenant_menu if role == "tenant" else agent_menu
 
@@ -1037,12 +1155,242 @@ class StreamlitApp:
                 st.session_state[f"auth_{role}"] = st.session_state["auth"]
                 st.session_state["active_role"] = role
                 st.session_state["screen"] = "app"
+
                 # default landings
-                st.session_state["sidebar_nav"] = "Conversations" if role == "tenant" else "Dashboard"
+                st.session_state["sidebar_nav"] = "Dashboard"
+
                 st.toast(f"✅ Logged in as {role.title()}")
                 st.rerun()
             else:
                 st.error("❌ Login failed. Please check your credentials.")
+
+    def _render_tenant_profile_card(self, profile: dict):
+        """
+        Shows display for tenant profile instead of a raw table.
+        """
+        if not profile:
+            st.info("No tenant profile found yet.")
+            st.caption("Once your profile is created in `tenant_profiles`, it will appear here.")
+            return
+
+        label_map = {
+            "full_name": "Full Name",
+            "nationality": "Nationality",
+            "date_of_birth": "Date of Birth",
+            "occupation": "Occupation",
+            "employment_status": "Employment Status",
+            "household_income": "Household Income",
+            "income": "Income",
+            "preferred_move_in_date": "Preferred Move-in Date",
+            "current_address": "Current Address",
+            "family_size": "Household Size",
+            "has_pets": "Has Pets",
+            "pet_details": "Pet Details",
+            "smoking": "Smoker",
+            "budget_min": "Budget (Min)",
+            "budget_max": "Budget (Max)",
+        }
+
+        # Hide IDs, timestamps, embeddings, etc.
+        hidden_keys = {
+            "profile_id", "id", "user_id", "created_at", "updated_at",
+            "embedding", "embeddings", "tenant_embedding", "vector", "vectors",
+        }
+
+        items = []
+        for key, value in profile.items():
+            if key in hidden_keys:
+                continue
+            label = label_map.get(key, key.replace("_", " ").title())
+            items.append((label, value))
+
+        if not items:
+            st.info("Profile exists but has no visible fields yet.")
+            return
+
+        col1, col2 = st.columns(2)
+        for i, (label, value) in enumerate(items):
+            col = col1 if i % 2 == 0 else col2
+            with col:
+                st.markdown(
+                    f"""
+                    <div style="
+                        border-radius: 10px;
+                        padding: 10px 12px;
+                        margin-bottom: 8px;
+                        background-color: #F7FAFC;
+                        border: 1px solid #E2E8F0;
+                    ">
+                        <div style="font-size: 0.8rem; color:#718096; text-transform:uppercase; letter-spacing:0.03em;">
+                            {label}
+                        </div>
+                        <div style="font-size: 0.95rem; font-weight:600; color:#1A202C; margin-top:2px;">
+                            {value if (value not in [None, ""]) else "—"}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+    
+    def _render_preferences_cards(self, prefs: list[dict] | dict):
+        """
+        Renders each row as profile-style cards.
+        """
+        if not prefs:
+            st.info("No saved property preferences yet.")
+            return
+
+        # Normalize to list
+        if isinstance(prefs, dict):
+            prefs = [prefs]
+
+        label_map = {
+            "min_budget": "💰 Budget (Min)",
+            "max_budget": "💰 Budget (Max)",
+            "budget_min": "💰 Budget (Min)",
+            "budget_max": "💰 Budget (Max)",
+            "min_bedrooms": "🛏 Min Bedrooms",
+            "max_bedrooms": "🛏 Max Bedrooms",
+            "preferred_areas": "📍 Preferred Areas",
+            "max_mrt_walk_mins": "🚉 Max Walk to MRT (mins)",
+            "property_type": "🏢 Property Type",
+            "room_type": "🚪 Room Type",
+            "furnishing": "🛋 Furnishing",
+            "pets_allowed": "🐾 Pets Allowed",
+            "smoking_allowed": "🚭 Smoking Allowed",
+            "aircon_required": "❄️ Aircon Required",
+            "lease_term_months": "📆 Lease Term (months)",
+        }
+
+        hidden_keys = {
+            "id", "preference_id", "user_id", "tenant_id",
+            "created_at", "updated_at",
+            "embedding", "embeddings", "preference_embedding", "vector", "vectors",
+        }
+
+
+        for idx, pref in enumerate(prefs, start=1):
+            st.markdown(f"##### Preference Set #{idx}")
+
+            col1, col2 = st.columns(2)
+            items = []
+
+            for key, value in pref.items():
+                if key in hidden_keys:
+                    continue
+                label = label_map.get(key, key.replace("_", " ").title())
+                
+                if isinstance(value, list):
+                    value = ", ".join(str(v) for v in value)
+                items.append((label, value))
+
+            if not items:
+                st.caption("No visible fields in this preference set.")
+                continue
+
+            for i, (label, value) in enumerate(items):
+                col = col1 if i % 2 == 0 else col2
+                with col:
+                    st.markdown(
+                        f"""
+                        <div style="
+                            border-radius: 10px;
+                            padding: 10px 12px;
+                            margin-bottom: 8px;
+                            background-color: #F7FAFC;
+                            border: 1px solid #E2E8F0;
+                        ">
+                            <div style="font-size: 0.8rem; color:#718096;
+                                        text-transform:uppercase; letter-spacing:0.03em;">
+                                {label}
+                            </div>
+                            <div style="font-size: 0.95rem; font-weight:600;
+                                        color:#1A202C; margin-top:2px;">
+                                {value if (value not in [None, '']) else '—'}
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+            st.markdown("---")
+
+    def _render_tenancy_agreements_cards(self, agreements: list[dict] | dict):
+        """
+        Shows display for tenancy agreements on the Agent dashboard.
+        """
+        if not agreements:
+            st.info("No tenancy agreements found yet.")
+            return
+
+        # Normalize to list
+        if isinstance(agreements, dict):
+            agreements = [agreements]
+
+        label_map = {
+            "status": "📌 Status",
+            "start_date": "📆 Start Date",
+            "end_date": "📆 End Date",
+            "monthly_rent": "💰 Monthly Rent",
+            "deposit_amount": "💵 Deposit Amount",
+            "tenant_id": "👤 Tenant ID",
+            "tenant_email": "✉️ Tenant Email",
+            "property_id": "🏢 Property ID",
+            "created_at": "🕒 Created At",
+            "updated_at": "🕒 Updated At",
+        }
+
+        hidden_keys = {
+            "id", "agreement_id",
+            "embedding", "embeddings", "agreement_embedding", "agreement_embeddings", "vector", "vectors",
+        }
+
+        for idx, ag in enumerate(agreements, start=1):
+            # Try to build a nice heading
+            title = ag.get("property_title") or ag.get("property_name")
+            addr  = ag.get("property_address") or ag.get("address")
+            heading_parts = []
+            if title: heading_parts.append(str(title))
+            if addr: heading_parts.append(str(addr))
+            heading = " • ".join(heading_parts) if heading_parts else f"Agreement #{idx}"
+
+            st.markdown(f"#### 📄 {heading}")
+
+            col1, col2 = st.columns(2)
+            items = []
+
+            for key, value in ag.items():
+                if key in hidden_keys:
+                    continue
+                label = label_map.get(key, key.replace("_", " ").title())
+                items.append((label, value))
+
+            for i, (label, value) in enumerate(items):
+                col = col1 if i % 2 == 0 else col2
+                with col:
+                    st.markdown(
+                        f"""
+                        <div style="
+                            border-radius: 10px;
+                            padding: 10px 12px;
+                            margin-bottom: 8px;
+                            background-color: #F7FAFC;
+                            border: 1px solid #E2E8F0;
+                        ">
+                            <div style="font-size: 0.8rem; color:#718096;
+                                        text-transform:uppercase; letter-spacing:0.03em;">
+                                {label}
+                            </div>
+                            <div style="font-size: 0.95rem; font-weight:600;
+                                        color:#1A202C; margin-top:2px;">
+                                {value if (value not in [None, '']) else '—'}
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+            st.markdown("---")
 
     # ===== MAIN APP RUNNER =====
     def run(self):
@@ -1070,43 +1418,83 @@ class StreamlitApp:
             st.session_state["active_role"] = None
             st.session_state["auth"] = {"logged_in": False, "email": None}
             st.rerun()
-
+            
         # 5) Agent flow
         if role == "agent":
             if nav == "Dashboard":
-                st.markdown("### Listings Dashboard")
+                st.markdown("### Agent Dashboard")
 
-                # Fetch from /properties
-                props = self._fetch_properties(limit=200, offset=0)
+                listings_tab, agreements_tab = st.tabs(["📋 Listings", "📄 Tenancy Agreements"])
 
-                if not props:
-                    st.warning("No properties available from backend yet.")
-                else:
-                    raw_df = pd.json_normalize(props)
+                with listings_tab:
+                    props = self._fetch_properties(limit=200, offset=0)
 
-                    preferred_cols = [
-                        "id", "property_id", "uuid",
-                        "title", "name", "address",
-                        "district", "area", "neighborhood",
-                        "price", "monthly_rent", "rent",
-                        "bedrooms", "beds", "bathrooms", "size_sqft", "size_sqm",
-                        "mrt_distance_mins", "distance_mrt",
-                        "available_from", "created_at", "updated_at"
-                    ]
-                    ordered_cols = [c for c in preferred_cols if c in raw_df.columns]
-                    other_cols = [c for c in raw_df.columns if c not in ordered_cols]
-                    display_df = raw_df[ordered_cols + other_cols] if ordered_cols else raw_df
+                    if not props:
+                        st.warning("No properties available from backend yet.")
+                    else:
+                        raw_df = pd.json_normalize(props)
+                        raw_df = self._clean_df_for_display(raw_df)
 
-                    st.dataframe(display_df, use_container_width=True, hide_index=True)
+                        preferred_cols = [
+                            "id", "property_id", "uuid",
+                            "title", "name", "address",
+                            "district", "area", "neighborhood",
+                            "price", "monthly_rent", "rent",
+                            "bedrooms", "beds", "bathrooms", "size_sqft", "size_sqm",
+                            "mrt_distance_mins", "distance_mrt",
+                            "available_from", "created_at", "updated_at"
+                        ]
+                        ordered_cols = [c for c in preferred_cols if c in raw_df.columns]
+                        other_cols = [c for c in raw_df.columns if c not in ordered_cols]
+                        display_df = raw_df[ordered_cols + other_cols] if ordered_cols else raw_df
 
-                    csv = display_df.to_csv(index=False).encode("utf-8")
-                    st.download_button(
-                        "Download listings CSV",
-                        data=csv,
-                        file_name="listings_export.csv",
-                        mime="text/csv",
-                        use_container_width=True
-                    )
+                        st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+                        # Optional CSV export
+                        csv = display_df.to_csv(index=False).encode("utf-8")
+                        st.download_button(
+                            "Download listings CSV",
+                            data=csv,
+                            file_name="listings_export.csv",
+                            mime="text/csv",
+                            use_container_width=True
+                        )
+                
+                with agreements_tab:
+                    st.markdown("#### Tenancy Agreements")
+
+                    agreements = self._fetch_tenancy_agreements(limit=200, offset=0)
+
+                    if not agreements:
+                        st.info("No tenancy agreements found yet.")
+                    else:
+                        self._render_tenancy_agreements_cards(agreements)
+
+                        agreements_df = pd.json_normalize(agreements)
+                        agreements_df = self._clean_df_for_display(agreements_df)
+
+                        preferred_ag_cols = [
+                            "id", "agreement_id",
+                            "property_id", "property.title", "property.address",
+                            "tenant_id", "tenant_email",
+                            "status", "start_date", "end_date",
+                            "monthly_rent", "deposit_amount",
+                            "created_at", "updated_at",
+                        ]
+                        ordered_ag_cols = [c for c in preferred_ag_cols if c in agreements_df.columns]
+                        other_ag_cols = [c for c in agreements_df.columns if c not in ordered_ag_cols]
+                        agreements_display = agreements_df[ordered_ag_cols + other_ag_cols] if ordered_ag_cols else agreements_df
+
+                        # Optional CSV export
+                        csv_ag = agreements_display.to_csv(index=False).encode("utf-8")
+                        st.download_button(
+                            "Download Agreements CSV",
+                            data=csv_ag,
+                            file_name="tenancy_agreements_export.csv",
+                            mime="text/csv",
+                            use_container_width=True,
+                            key="download_agreements_btn",
+                        )
 
             elif nav == "Profile":
                 auth = st.session_state.get("auth", {}) or {}
@@ -1122,14 +1510,25 @@ class StreamlitApp:
 
                 st.markdown(f"**User Type:** `{auth.get('user_type') or '—'}`")
 
-        # 6) Tenant flow
+         # 6) Tenant flow
         elif role == "tenant":
-            if nav == "Conversations":
+            auth = st.session_state.get("auth", {}) or {}
+            user_id = auth.get("user_id")
+
+            # DASHBOARD VIEWING
+            if nav == "Dashboard":
+                st.markdown("### Tenant Dashboard")
+                st.markdown("#### 🏠 Property Preferences")
+                prefs = self._fetch_tenant_preferences(user_id=user_id)
+                self._render_preferences_cards(prefs)
+
+            # CONVERSATIONS VIEWING
+            elif nav == "Conversations":
                 self._display_chat_history()
                 self._handle_user_input()
 
+            # PROFILE VIEWING
             elif nav == "Profile":
-                auth = st.session_state.get("auth", {}) or {}
                 active_role = st.session_state.get("active_role", "tenant")
 
                 st.markdown("## Account")
@@ -1139,9 +1538,15 @@ class StreamlitApp:
                 with c2:
                     st.metric("Email", auth.get("email") or "—")
                 with c3:
-                    st.metric("User ID", auth.get("user_id") or "—")
+                    st.metric("User ID", user_id or "—")
 
                 st.markdown(f"**User Type:** `{auth.get('user_type') or '—'}`")
+
+                st.markdown("---")
+                st.markdown("### Tenant Profile")
+
+                profile = self._fetch_tenant_profile(user_id=user_id)
+                self._render_tenant_profile_card(profile)
 
 # ===== APP ENTRY POINT =====
 if __name__ == "__main__":

@@ -4,9 +4,9 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # 2. Copy dependencies and install them
-# Copy requirements.txt to /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy requirements-render.txt to /app
+COPY requirements-render.txt .
+RUN pip install --no-cache-dir -r requirements-render.txt
 
 # 3. Copy the entire repository content (including the 'src' folder)
 # This places src/main.py at /app/src/main.py
