@@ -143,16 +143,16 @@ It is backed up by Render on the backend which is always up and running.
    ```
 
 ### Development Workflow
-Backend API: Use the FastAPI docs at http://localhost:8000/docs to test endpoints
-Frontend: Streamlit auto-reloads on file changes
-Database: Monitor Supabase dashboard for real-time data changes
-Testing: Both services need to be running for full functionality
+* Backend API: Use the FastAPI docs at http://localhost:8000/docs to test endpoints
+* Frontend: Streamlit auto-reloads on file changes
+* Database: Monitor Supabase dashboard for real-time data changes
+* Testing: Both services need to be running for full functionality
 
 ### Deployment
 Both services deploy automatically:
 
-Frontend: Streamlit Cloud deploys on Git push to main
-Backend: Render deploys FastAPI service on Git push to main
+* Frontend: Streamlit Cloud deploys on Git push to main
+* Backend: Render deploys FastAPI service on Git push to main
 
 
 ### Architecture
