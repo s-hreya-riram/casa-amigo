@@ -365,6 +365,19 @@ async def create_property(property_data: dict):
 
 # ==================== TENANCY AGREEMENT ROUTES ====================
 
+@app.get("/tenancy-agreements", tags=["Tenancy Agreements"])
+async def list_tenancy_agreements(
+    limit: int = 50,
+    offset: int = 0,
+):
+    """List tenancy agreements (for Agent dashboard)."""
+    try:
+        agreements = tenancy_service.list_agreements(limit=limit, offset=offset)
+        return {"agreements": agreements}
+    except Exception as e:
+        _handle_service_error(e)
+
+
 @app.get("/tenancy-agreements/{agreement_id}", tags=["Tenancy Agreements"])
 async def get_tenancy_agreement(agreement_id: UUID):
     """Get a specific tenancy agreement"""

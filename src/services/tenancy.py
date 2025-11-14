@@ -1,28 +1,45 @@
 from services.base import BaseService
 from services.schema import TenancyAgreementsInsert
 from uuid import UUID
-from typing import Dict
+from typing import Dict, List
 
 class TenancyService(BaseService):
     """Tenancy agreement management"""
-    
+
     def create_agreement(self, agreement: TenancyAgreementsInsert) -> Dict:
         """Create tenancy agreement"""
         data = agreement.model_dump()
         data.pop("agreement_id", None)  # Let DB generate UUID
-        data.pop("created_at", None)  # Let DB generate created_at
-        data.pop("updated_at", None)  # Let DB generate updated_at
+        data.pop("created_at", None)    # Let DB generate created_at
+        data.pop("updated_at", None)    # Let DB generate updated_at
+        
         data = self._execute_query(
             lambda: self.client.table("tenancy_agreements").insert(data),
-            "Create agreement"
+            "Create agreement",
         )
         return data[0] if data else {}
-    
+
     def get_agreement(self, agreement_id: UUID) -> Dict:
-        """Get tenancy agreement. Raises NotFoundError if not found."""
+        """Get a single tenancy agreement by id. Raises NotFoundError if not found."""
         return self._get_single(
-            lambda: self.client.table("tenancy_agreements")
-            .select("*")
-            .eq("id", str(agreement_id)),
-        f"Get agreement {agreement_id}"
-    )
+            lambda: self.client
+                .table("tenancy_agreements")
+                .select("*")
+                .eq("id", str(agreement_id)),
+            f"Get agreement {agreement_id}",
+        )
+
+    def list_agreements(self, limit: int = 50, offset: int = 0) -> List[Dict]:
+        """
+        List tenancy agreements (used by Agent Dashboard).
+        Returns a list of rows from `tenancy_agreements`.
+        """
+        return self._execute_query(
+            lambda: (
+                self.client
+                .table("tenancy_agreements")
+                .select("*")
+                .range(offset, offset + limit - 1)
+            ),
+            "List agreements",
+        )
