@@ -841,7 +841,7 @@ class StreamlitApp:
             default_index = menu.index(prev) if prev in menu else 0
 
             st.selectbox(
-                label="",
+                label="Section",
                 options=menu,
                 index=default_index,
                 key="sidebar_nav",
@@ -1435,29 +1435,46 @@ class StreamlitApp:
                         raw_df = pd.json_normalize(props)
                         raw_df = self._clean_df_for_display(raw_df)
 
+                        # Preferred / ordered columns for the listings table
                         preferred_cols = [
-                            "id", "property_id", "uuid",
-                            "title", "name", "address",
+                            "address", "rent", "property_type",
+                            "num_bedrooms", "num_bathrooms", "bedrooms",
+                            "sqft", "rent_psf", "mrt_info", "listing_status",
+                            "property_id", "title", "name",
                             "district", "area", "neighborhood",
-                            "price", "monthly_rent", "rent",
-                            "bedrooms", "beds", "bathrooms", "size_sqft", "size_sqm",
+                            "price", "monthly_rent", "rent", "bedrooms",
+                            "beds", "bathrooms", "size_sqft", "size_sqm",
                             "mrt_distance_mins", "distance_mrt",
-                            "available_from", "created_at", "updated_at"
+                            "available_from", "created_at", "updated_at",
                         ]
-                        ordered_cols = [c for c in preferred_cols if c in raw_df.columns]
+
+                        preferred_cols = [c for c in preferred_cols if c in raw_df.columns]
+
+                        seen = set()
+                        ordered_cols = []
+                        for c in preferred_cols:
+                            if c not in seen:
+                                ordered_cols.append(c)
+                                seen.add(c)
+
                         other_cols = [c for c in raw_df.columns if c not in ordered_cols]
+
                         display_df = raw_df[ordered_cols + other_cols] if ordered_cols else raw_df
 
-                        st.dataframe(display_df, use_container_width=True, hide_index=True)
+                        st.dataframe(
+                            display_df,
+                            width="stretch",
+                            hide_index=True,
+                        )
 
                         # Optional CSV export
                         csv = display_df.to_csv(index=False).encode("utf-8")
                         st.download_button(
-                            "Download listings CSV",
+                            "Download Listings CSV",
                             data=csv,
                             file_name="listings_export.csv",
                             mime="text/csv",
-                            use_container_width=True
+                            use_container_width=True,
                         )
                 
                 with agreements_tab:
