@@ -1,98 +1,149 @@
 # Casa Amigo 🏠
 
-Casa Amigo is a tenant assistant Streamlit app aimed at reducing time spent by property managers to answer redundant questions from prospective/existing tenants while ensuring an excellent experience for tenants. 
+Casa Amigo is an AI-powered rental assistant that helps tenants navigate lease agreements, explore neighborhoods, and manage rental deadlines through intelligent conversation and automated reminders.
 
 ## What it does
 
-Casa Amigo uses AI to help tenants understand their rental agreements without reading through dense legal documents. Here's how it works:
+Casa Amigo uses agentic workflows to provide specialized assistance to intelligently classify user intent and routes to specialized tools :
 
-1. **Document Processing**: The system reads and processes rental documents from a curated corpus using PyPDF and document parsing tools
-2. **Vector Indexing**: LlamaIndex converts these documents into searchable vector store indices, allowing for semantic similarity searches
-3. **Intelligent Retrieval**: When you ask a question, the system searches the vector indices to find relevant document sections
-4. **Contextual Response**: GPT-4o-mini uses the retrieved document sections as context to generate accurate, document-grounded responses through RAG
-5. **Memory Buffer**: Your conversation history is stored in a memory buffer, allowing the AI to maintain context across multiple questions
-
-The app is specifically tailored for Singapore's rental market, including HDB regulations and expat-specific requirements but can be extended to global markets with the inclusion of the relevant corpus.
+1. **Lease Q & A**: Uses Singapore rental documents to provide accurate advice for user Q & A
+2. **Smart Reminders**: Creates and sends automated email notifications for rental deadlines
+3. **Neighborhood Intelligence**: Provides location-based insights using real-time OpenStreetMap data
 
 ## Tech Stack
 
-- **Frontend**: Streamlit
-- **AI/ML**: OpenAI GPT-4o-mini, LlamaIndex for document retrieval
-- **Database**: SQLite (dev) / PostgreSQL (prod) with SQLAlchemy
-- **Document Processing**: PyPDF, python-docx
+Our RAG-powered property management chatbot leverages a modern, cloud-based architecture designed for scalability, real-time data retrieval, and intelligent document processing.
 
-## Getting Started
+### 4.1 Frontend
+**Streamlit** - Provides an interactive web interface for the chatbot with minimal development overhead
+
+### 4.2 Backend & APIs
+**FastAPI** - High-performance Python web framework handling API requests, managing chat sessions, and orchestrating communication between components.
+
+**Supabase** - PostgreSQL database with pgvector extension for storing conversation history, user data, and vector embeddings for semantic search. Schema of the tables in the database are described in Appendix (Section 9.1)
+
+### 4.3 AI & RAG Pipeline
+**LlamaIndex** - Manages document indexing, chunking, and retrieval orchestration for the RAG pipeline.
+
+**OpenAI API** - Provides LLM capabilities for natural language understanding and response generation.
+
+Models used:
+- `gpt-4o-mini`: Enables the conversational agent and conversation moderation
+- `whisper-1`: Enables the voice input features to support accessibility usecases
+
+**Agentic Workflow Router** - Employs intelligent query classification to route requests to specialized tool handlers: lease agreement Q&A for contract inquiries, automated reminder management, and location-based neighborhood search using OpenStreetMap integration.
+
+### 4.4 Cloud Infrastructure
+**Render** - Hosts the FastAPI backend with automatic deployments from Git
+
+**Streamlit Cloud** - Hosts the frontend with automatic deployments from Git
+
+**AWS Services**:
+- **EventBridge** - Triggers Lambda on schedule for automated reminders
+- **Lambda** - Invokes SES to send reminder emails
+- **SES (Simple Email Service)** - Sends transactional email reminders
+
+## Features
+
+### 5.1 Core Chat Capabilities
+
+#### 5.1.1 Text Input Processing
+- Conversational interface for user inquiries
+- Context-aware responses using RAG
+
+#### 5.1.2 Voice Input Accessibility
+- Speech-to-Text using Whisper API
+- Seamless conversion to text for processing
+
+### 5.2 Intelligent Query Routing (Agentic Workflow)
+
+The chatbot employs an agentic workflow that automatically classifies user intent and routes queries to specialized tools.
+
+#### 5.2.1 Lease Agreement Q&A
+- RAG-powered responses from Singapore rental documents
+- Covers HDB policies, lease templates, legal regulations
+- Provides accurate contract and policy information
+
+#### 5.2.2 Reminder Scheduling
+- Natural language reminder creation ("remind me about rent on 1st")
+- Scheduled email notifications via AWS infrastructure
+- List and view active reminders
+- Support for 6 reminder types: LOI, Deposit, Lease Signing, Rent Payment, Renewal, Move-out
+
+#### 5.2.3 Neighborhood Research
+- Location-based POI search using OpenStreetMap
+- Finds nearby MRT stations, schools, clinics, markets
+- Calculates and displays walking distances from property
+
+### 5.3 Safety & Security
+
+#### 5.3.1 Authentication & Authorization
+- JWT-based secure access
+- User session management via Supabase
+- Role-based access (tenant/property agent)
+
+#### 5.3.2 Content Moderation
+- Real-time safety checks using OpenAI Moderation API
+- Filters inappropriate or harmful content
+
+## How to Run
+
+### Live Application
+Visit the deployed application at: **[casa-amigo.streamlit.app](https://casa-amigo.streamlit.app/)**
+
+The app is hosted on Streamlit Cloud with automatic deployments from the main branch.
+
+It is backed up by Render on the backend which is always up and running. 
+
+## How to Develop
 
 ### Prerequisites
 - Python 3.10 or higher
 - OpenAI API key
-- Supabase API and JWT keys
+- Supabase project with API and JWT keys
 
-### Installation
+### Local Setup
 
-1. Clone the repository and navigate to the project directory
-
-2. Set up a virtual environment:
+1. **Clone and setup environment:**
    ```bash
+   git clone https://github.com/s-hreya-riram/casa-amigo.git
+   cd casa-amigo
    python -m venv venv
    source ./venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-   ```bash
    pip install -r requirements.txt
-   ```
 
-4. Configure your credentials using Streamlit secrets (frontend-related) and (or) your .env (backend-related):
-
-   Locate the OpenAI API key in https://platform.openai.com/settings/organization/api-keys, 
-   the project_name from https://supabase.com/dashboard/project/upendnxzcnatkvlmkkfn/settings/general (look for projectID),
-   the Supabase API credentials in 
-   https://supabase.com/dashboard/project/upendnxzcnatkvlmkkfn/settings/api-keys
-   ```
-
-### Streamlit Cloud Deployment
-   When deploying to Streamlit Cloud:
-   1. Go to your app dashboard on [share.streamlit.io](https://share.streamlit.io)
-   2. Click on your app, then navigate to "Settings" → "Secrets"
-   3. Add the same configurations you added in Step 4 of ## Installation in the secrets editor
-   4. Click "Save" and wait for automatic redeployment
-   
-   ⚠️ **Important**: Make sure to include the section headers like `[openai]` - this is required for the app to find your API key in Streamlit Cloud.
-
-5. Run the application locally :
+2. **Configure secrets:**
    ```bash
+   cp src/.streamlit/secrets.toml.template src/.streamlit/secrets.toml
+
+   Fill in the required values:
+   ```
+   [openai]
+   api_key = "your-openai-api-key"
+
+   [supabase]
+   url = "your-supabase-url"
+   key = "your-supabase-anon-key"
+   jwt_secret = "your-jwt-secret"
+   ```
+   Getting your credentials:
+
+   OpenAI API key: platform.openai.com/api-keys
+   Supabase credentials: Your project dashboard → Settings → API
+
+3. Run locally:
+   ```
    streamlit run src/app.py
    ```
 
-The app will open in your browser.
+### Architecture
+Casa Amigo follows a cloud-native, microservices architecture:
 
-## Project Structure
+* Frontend: Streamlit Cloud (auto-deploy from Git)
+* Backend: Render FastAPI service (auto-deploy from Git)
+* Database: Supabase PostgreSQL with real-time subscriptions
+* AI Pipeline: OpenAI + LlamaIndex RAG system
+* Notifications: AWS EventBridge → Lambda → SES email pipeline
+* Geospatial: OpenStreetMap Overpass API integration
 
-```
-src/
-├── app.py              # Main Streamlit application
-├── config/             # Configuration management
-├── core/               # Core business logic (chatbot, document processing)
-├── models/             # Database models
-├── services/           # Additional services (reminders, etc.)
-└── utils/              # Utility functions
-
-data/                   # Sample rental documents for testing
-```
-
-## Upcoming Features
-
-Casa Amigo is continuously evolving with new capabilities in development:
-
-### **Smart Notifications & Reminders**
-- Automated rent due alerts via email and browser notifications
-- Lease renewal warnings with advance notice
-- Important date tracking extracted from documents
-- Calendar integration for rental milestones
-
-### **Enhanced User Experience**
-- User authentication and personalized accounts
-- Secure login functionality with password hashing
-- Individual chat history and session management
-- Multi-language support (Chinese/Malay translations)
+The agentic workflow intelligently routes queries to specialized handlers, making Casa Amigo more than a chatbot—it's a comprehensive Singapore rental intelligence platform.
