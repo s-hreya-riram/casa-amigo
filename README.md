@@ -14,33 +14,15 @@ Casa Amigo uses agentic workflows to provide specialized assistance to intellige
 
 Our RAG-powered property management chatbot leverages a modern, cloud-based architecture designed for scalability, real-time data retrieval, and intelligent document processing.
 
-<<<<<<< HEAD
-### 1.1 Frontend
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-### 4.1 Frontend
-=======
 ### Frontend
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 **Streamlit** - Provides an interactive web interface for the chatbot with minimal development overhead
 
-<<<<<<< HEAD
-### 1.2 Backend & APIs
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-### 4.2 Backend & APIs
-=======
 ### Backend & APIs
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 **FastAPI** - High-performance Python web framework handling API requests, managing chat sessions, and orchestrating communication between components.
 
 **Supabase** - PostgreSQL database with pgvector extension for storing conversation history, user data, and vector embeddings for semantic search. Schema of the tables in the database are described in Appendix (Section 9.1)
 
-<<<<<<< HEAD
-### 1.3 AI & RAG Pipeline
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-### 4.3 AI & RAG Pipeline
-=======
 ### AI & RAG Pipeline
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 **LlamaIndex** - Manages document indexing, chunking, and retrieval orchestration for the RAG pipeline.
 
 **OpenAI API** - Provides LLM capabilities for natural language understanding and response generation.
@@ -51,13 +33,7 @@ Models used:
 
 **Agentic Workflow Router** - Employs intelligent query classification to route requests to specialized tool handlers: lease agreement Q&A for contract inquiries, automated reminder management, and location-based neighborhood search using OpenStreetMap integration.
 
-<<<<<<< HEAD
-### 1.4 Cloud Infrastructure
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-### 4.4 Cloud Infrastructure
-=======
 ### Cloud Infrastructure
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 **Render** - Hosts the FastAPI backend with automatic deployments from Git
 
 **Streamlit Cloud** - Hosts the frontend with automatic deployments from Git
@@ -69,103 +45,43 @@ Models used:
 
 ## Features
 
-<<<<<<< HEAD
-### 2.1 Core Chat Capabilities
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-### 5.1 Core Chat Capabilities
-=======
 ### Core Chat Capabilities
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 
-<<<<<<< HEAD
-#### 2.1.1 Text Input Processing
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-#### 5.1.1 Text Input Processing
-=======
 #### Text Input Processing
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 - Conversational interface for user inquiries
 - Context-aware responses using RAG
 
-<<<<<<< HEAD
-#### 2.1.2 Voice Input Accessibility
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-#### 5.1.2 Voice Input Accessibility
-=======
 #### Voice Input Accessibility
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 - Speech-to-Text using Whisper API
 - Seamless conversion to text for processing
 
-<<<<<<< HEAD
-### 2.2 Intelligent Query Routing (Agentic Workflow)
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-### 5.2 Intelligent Query Routing (Agentic Workflow)
-=======
 ### Intelligent Query Routing (Agentic Workflow)
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 
 The chatbot employs an agentic workflow that automatically classifies user intent and routes queries to specialized tools.
 
-<<<<<<< HEAD
-#### 2.2.1 Lease Agreement Q&A
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-#### 5.2.1 Lease Agreement Q&A
-=======
 #### Lease Agreement Q&A
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 - RAG-powered responses from Singapore rental documents
 - Provides accurate contract and policy information
 
-<<<<<<< HEAD
-#### 2.2.2 Reminder Scheduling
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-#### 5.2.2 Reminder Scheduling
-=======
 #### Reminder Scheduling
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 - Natural language reminder creation ("remind me about rent on 1st")
 - Scheduled email notifications via AWS infrastructure
 - List and view active reminders
 - Support for 6 reminder types: LOI, Deposit, Lease Signing, Rent Payment, Renewal, Move-out
 
-<<<<<<< HEAD
-#### 2.2.3 Neighborhood Research
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-#### 5.2.3 Neighborhood Research
-=======
 #### Neighborhood Research
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 - Location-based POI search using OpenStreetMap
 - Finds nearby MRT stations, schools, clinics, markets
 - Calculates and displays walking distances from property
 
-<<<<<<< HEAD
-### 2.3 Safety & Security
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-### 5.3 Safety & Security
-=======
 ### Safety & Security
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 
-<<<<<<< HEAD
-#### 2.3.1 Authentication & Authorization
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-#### 5.3.1 Authentication & Authorization
-=======
 #### Authentication & Authorization
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 - JWT-based secure access
 - User session management via Supabase
 - Role-based access (tenant/property agent)
 
-<<<<<<< HEAD
-#### 2.3.2 Content Moderation
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-#### 5.3.2 Content Moderation
-=======
 #### Content Moderation
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
 - Real-time safety checks using OpenAI Moderation API
 - Filters inappropriate or harmful content
 
@@ -250,11 +166,6 @@ Casa Amigo follows a cloud-native, microservices architecture:
 * Geospatial: OpenStreetMap Overpass API integration
 
 The agentic workflow intelligently routes queries to specialized handlers, making Casa Amigo more than a chatbot—it's a comprehensive Singapore rental intelligence platform.
-<<<<<<< HEAD
-||||||| parent of fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
-The agentic workflow intelligently routes queries to specialized handlers, making Casa Amigo more than a chatbot—it's a comprehensive Singapore rental intelligence platform.
-=======
 
 ### Project Structure
 TBD
->>>>>>> fc62c84 (Updated the headings under tech stack and features in README.md and added a TBD section for project structure)
