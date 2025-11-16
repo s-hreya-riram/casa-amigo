@@ -168,4 +168,128 @@ Casa Amigo follows a cloud-native, microservices architecture:
 The agentic workflow intelligently routes queries to specialized handlers, making Casa Amigo more than a chatbot—it's a comprehensive Singapore rental intelligence platform.
 
 ### Project Structure
-TBD
+## Project Structure
+
+```
+casa-amigo/
+├── .devcontainer/
+│   └── devcontainer.json
+│
+├── .github/
+│   └── workflows/
+│       └── keepalive.yml
+│
+├── .streamlit/
+│   └── secrets.toml.template
+│
+├── assets/                           # Static assets
+│   ├── blink_robot_avatar.gif
+│   ├── load_robot_avatar.gif
+│   ├── logo.png
+│   └── user_avatar.png
+│
+├── data/                             # Document storage
+│   ├── contracts/
+│   │   └── Track_B_Tenancy_Agreement.pdf
+│   └── more_contracts/
+│
+├── documentation/                    # Project documentation
+│   ├── .Rhistory
+│   ├── BACKEND_API_DOCUMENTATION.md
+│   └── BACKEND_API_TESTING.md
+│
+├── evaluation/                       # RAG evaluation scripts and results
+│   ├── index1_scores/
+│   ├── index2_scores/
+│   ├── index2_v2_scores/
+│   ├── gen_outputs.json
+│   ├── generation_eval.py
+│   ├── generation_scores.json
+│   ├── make_report.py
+│   ├── README_EVAL.md
+│   ├── retrieval_data.json
+│   ├── retrieval_eval.py
+│   ├── retrieval_results.json
+│   ├── retrieval_scores.json
+│   └── rouge_data.json
+│
+├── pdf_index/                        # Baseline RAG index
+│
+├── pdf_index_v2/                     # Enhanced RAG index
+│   ├── default__vector_store.json
+│   ├── docstore.json
+│   ├── graph_store.json
+│   ├── image_vector_store.json
+│   └── index_store.json
+│
+├── src/                              # Main application code
+│   ├── .streamlit/
+│   │   ├── config.toml
+│   │   └── secrets.toml.template
+│   │
+│   ├── config/                       # Configuration management
+│   │   ├── __init__.py
+│   │   └── config_manager.py
+│   │
+│   ├── core/                         # Core business logic
+│   │   ├── __init__.py
+│   │   ├── agent.py
+│   │   ├── chatbot_engine.py
+│   │   └── document_manager.py
+│   │
+│   ├── entities/                     # Data models (FastAPI)
+│   │
+│   ├── modules/                      # UI modules
+│   │   ├── __init__.py
+│   │   └── supabase_instance.py
+│   │
+│   ├── services/                     # Service layer
+│   │   ├── reminders/
+│   │   │   ├── __init__.py
+│   │   │   └── [reminder services]
+│   │   ├── __init__.py
+│   │   ├── auth.py
+│   │   ├── base.py
+│   │   ├── conversation.py
+│   │   ├── exceptions.py
+│   │   ├── import_properties.py
+│   │   ├── pdf_loader.py
+│   │   ├── property_service.py
+│   │   ├── reminders.py
+│   │   ├── schema.py
+│   │   ├── scrape_property.py
+│   │   ├── tenancy.py
+│   │   ├── tenant_profile.py
+│   │   ├── user.py
+│   │   └── vector_store.py
+│   │
+│   ├── utils/                        # Utility functions and tools
+│   │   ├── __init__.py
+│   │   ├── auth_store.py
+│   │   ├── current_auth.py
+│   │   ├── lease_tool.py
+│   │   ├── moderation.py
+│   │   ├── neighbourhood_research_tool.py
+│   │   ├── prompts.py
+│   │   ├── reminder_tool.py
+│   │   ├── tool_registry.py
+│   │   ├── utils.py
+│   │   └── voice.py
+│   │
+│   ├── .env.example
+│   ├── app.py                        # Streamlit frontend entry point
+│   ├── doc_run.py
+│   ├── main.py                       # FastAPI backend entry point
+│   └── role_based_routing.py
+│
+├── .gitignore
+├── app_backup.patch
+├── Dockerfile
+├── packages.txt
+├── pyenv.cfg
+├── README.md
+├── requirements-render.txt           # Render deployment dependencies
+├── requirements.txt                  # Main project dependencies
+├── retrieval_scores.json
+└── setup.py
+```
