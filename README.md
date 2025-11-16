@@ -74,6 +74,14 @@ The chatbot employs an agentic workflow that automatically classifies user inten
 - Finds nearby MRT stations, schools, clinics, markets
 - Calculates and displays walking distances from property
 
+### User Roles & Dashboards
+
+#### Tenant Dashboard 
+- Allows tenants to manage property preferences,  personal profiles, and view current lease details and end dates
+
+#### Agent Dashboard 
+- Allows agentsto manage listings, review tenancy agreements, monitor client profiles, and export property data for analysis
+
 ### Safety & Security
 
 #### Authentication & Authorization
